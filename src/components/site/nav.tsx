@@ -9,9 +9,9 @@ function Logo() {
       <img
         src="/logo.png"
         alt="ApeTerm logo"
-        className="h-11 w-11 rounded-[14px] border border-border-strong bg-card object-contain p-1 shadow-[0_18px_40px_-24px_oklch(0.24_0.03_265/0.38)]"
+        className="h-12 w-12 rounded-[14px] border border-border-strong bg-card object-contain shadow-[0_18px_40px_-24px_oklch(0.24_0.03_265/0.38)]"
       />
-      <span className="font-mono text-[19px] tracking-tight text-foreground">apeterm</span>
+      <span className="font-mono text-[20px] tracking-tight text-foreground">apeterm</span>
     </Link>
   );
 }
