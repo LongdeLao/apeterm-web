@@ -1,4 +1,4 @@
-import { GitFork, Star, CircleDot } from "lucide-react";
+import { GitFork, Star, CircleDot, Code2 } from "lucide-react";
 import { formatCount, useGitHubStats } from "@/hooks/use-github-stats";
 
 const stack = [
