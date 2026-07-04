@@ -1,219 +1,123 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowUpRight,
-  BookOpen,
-  ChevronRight,
-  CircleHelp,
-  Command,
-  FileCode2,
-  LayoutDashboard,
-  Rocket,
-} from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { GlowCard } from "@/components/aceternity/glow-card";
+import { ArrowLeft, ArrowUpRight, ChevronRight } from "lucide-react";
+import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
 
 export const Route = createFileRoute("/docs")({
   component: DocsPage,
+  head: () => ({
+    meta: [
+      { title: "ApeTerm · Docs" },
+      {
+        name: "description",
+        content:
+          "Install ApeTerm, learn the keys, and configure providers. The complete operator handbook.",
+      },
+    ],
+  }),
 });
 
-const mainNav = [
-  { title: "Overview", href: "#overview", icon: LayoutDashboard, badge: "New" },
-  { title: "Getting Started", href: "#getting-started", icon: Rocket },
-  { title: "CLI", href: "#cli", icon: Command },
-];
-
-const resourceNav = [
-  { title: "Components", href: "#components", icon: FileCode2 },
-  { title: "FAQ", href: "#faq", icon: CircleHelp },
+const sections = [
+  { id: "install", label: "Install" },
+  { id: "first-run", label: "First run" },
+  { id: "cli", label: "CLI" },
+  { id: "keys", label: "Keys" },
+  { id: "config", label: "Config" },
+  { id: "providers", label: "Providers" },
+  { id: "faq", label: "FAQ" },
 ];
 
 function DocsPage() {
   return (
-    <SidebarProvider defaultOpen>
-      <Sidebar collapsible="icon">
-        <SidebarHeader className="border-b border-sidebar-border p-4">
-          <Link to="/" className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="ApeTerm logo"
-              className="h-10 w-10 rounded-xl border border-sidebar-border bg-white object-cover p-1"
-            />
-            <div className="min-w-0">
-              <div className="font-mono text-sm text-sidebar-foreground">apeterm docs</div>
-              <div className="text-xs text-sidebar-foreground/60">Operator handbook</div>
-            </div>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Slim top bar */}
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Home
           </Link>
-        </SidebarHeader>
-
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Documentation</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {mainNav.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={item.href === "#overview"}
-                    >
-                      <a href={item.href}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                    {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
-                    {item.title === "Getting Started" ? (
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <a href="#install">Install</a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <a href="#run-local">Run locally</a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    ) : null}
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          <SidebarGroup>
-            <SidebarGroupLabel>Resources</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {resourceNav.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild tooltip={item.title}>
-                      <a href={item.href}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-
-        <SidebarFooter className="border-t border-sidebar-border p-4">
-          <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 text-sm">
-            <div className="flex items-center gap-2 font-medium text-sidebar-foreground">
-              <BookOpen className="h-4 w-4" />
-              Quick start
-            </div>
-            <p className="mt-1 text-xs leading-5 text-sidebar-foreground/70">
-              Install dependencies, run the dev server, then open the local URL in your browser.
-            </p>
-          </div>
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
-
-      <SidebarInset className="min-h-screen bg-[radial-gradient(circle_at_top,oklch(1_0_0),transparent_36%),linear-gradient(180deg,oklch(0.992_0.004_90),oklch(0.977_0.005_90))]">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/70 bg-background/80 px-4 backdrop-blur md:px-6">
-          <SidebarTrigger />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/" className="transition-colors hover:text-foreground">
-              Home
-            </Link>
-            <ChevronRight className="h-4 w-4" />
-            <span className="text-foreground">Docs</span>
-          </div>
+          <ChevronRight className="h-3.5 w-3.5 text-border" />
+          <span className="text-sm text-foreground">Docs</span>
           <a
             href="https://github.com/LongdeLao/apeterm"
-            className="ml-auto hidden items-center gap-2 rounded-full border border-border/80 bg-white/85 px-3.5 py-2 text-sm text-foreground/80 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white md:inline-flex"
+            className="ml-auto inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            Repo
+            Repository
             <ArrowUpRight className="h-3.5 w-3.5" />
           </a>
-        </header>
+        </div>
+      </header>
 
-        <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-4 py-8 md:px-8">
-          <GlowCard id="overview" className="p-8 md:p-10">
-            <div className="max-w-3xl">
-              <div className="font-mono text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Documentation
-              </div>
-              <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance md:text-5xl">
-                Install it, run it, learn the keys.
-              </h1>
-              <p className="mt-4 text-lg leading-8 text-muted-foreground">
-                ApeTerm is a terminal app, not a web dashboard — there's no account to make.
-                Everything below is what you'll actually type or press.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-2">
-                {["keyboard first", "local SQLite", "no telemetry by default"].map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-border/80 bg-white/75 px-3 py-1 font-mono text-[11px] text-muted-foreground"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-16 px-6 py-20 md:grid-cols-[200px_1fr] md:gap-20">
+        {/* Sidebar */}
+        <aside className="hidden md:block">
+          <nav className="sticky top-24 space-y-1 font-mono text-[13px]">
+            <div className="mb-4 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+              Contents
             </div>
-          </GlowCard>
+            {sections.map((s) => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className="block rounded-md px-2 py-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                {s.label}
+              </a>
+            ))}
+          </nav>
+        </aside>
 
-          <section id="getting-started" className="grid gap-6 md:grid-cols-2">
-            <GlowCard id="install" className="p-6">
-              <h2 className="text-xl font-semibold">Install</h2>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                One script puts <code className="font-mono text-foreground">apeterm</code> on your
-                PATH, installs the runtime under{" "}
-                <code className="font-mono text-foreground">~/.local/share/apeterm</code>, and sets
-                up the private Python runtime used for streaming quotes.
-              </p>
-              <pre className="mt-5 overflow-x-auto rounded-2xl border border-border/60 bg-[linear-gradient(180deg,oklch(0.99_0.003_90),oklch(0.96_0.005_90))] p-4 font-mono text-sm shadow-inner">
-                <code>
-                  curl -fsSL https://github.com/LongdeLao/apeterm/raw/master/install.sh | bash
-                </code>
-              </pre>
-            </GlowCard>
+        {/* Article */}
+        <article className="max-w-3xl">
+          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
+            Documentation
+          </div>
+          <h1 className="mt-5 font-display text-5xl leading-[1.02] tracking-[-0.02em] text-balance md:text-6xl">
+            Install it. Run it.
+            <br />
+            <span className="italic text-muted-foreground/80">Learn the keys.</span>
+          </h1>
+          <p className="mt-8 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
+            ApeTerm is a terminal app, not a web dashboard. There's no account. Everything below
+            is what you'll actually type or press.
+          </p>
 
-            <GlowCard id="run-local" className="p-6" glowClassName="via-[oklch(0.86_0.05_145/0.5)]">
-              <h2 className="text-xl font-semibold">First run</h2>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                Launch it, open a new terminal if the shell doesn't pick up the new PATH yet, and
-                you land on the dashboard with News, Watchlist, Calendar and Notes panels.
-              </p>
-              <pre className="mt-5 overflow-x-auto rounded-2xl border border-border/60 bg-[linear-gradient(180deg,oklch(0.99_0.003_90),oklch(0.96_0.005_90))] p-4 font-mono text-sm shadow-inner">
-                <code>apeterm</code>
-              </pre>
-            </GlowCard>
-          </section>
+          <div className="mt-8 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
+              <AppleIcon className="h-3 w-3" /> macOS · Apple Silicon
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
+              <LinuxIcon className="h-3 w-3" /> Linux · x86_64
+            </span>
+          </div>
 
-          <GlowCard id="cli" className="p-6">
-            <h2 className="text-xl font-semibold">CLI flags</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
-              Beyond the interactive terminal, a few subcommands run outside the TUI.
+          <Divider />
+
+          <Section id="install" number="01" title="Install">
+            <p>
+              One script puts <Mono>apeterm</Mono> on your <Mono>PATH</Mono>, installs the
+              runtime under <Mono>~/.local/share/apeterm</Mono>, and sets up the private Python
+              runtime used for streaming quotes.
             </p>
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <Code>
+              curl -fsSL https://github.com/LongdeLao/apeterm/raw/master/install.sh | bash
+            </Code>
+          </Section>
+
+          <Section id="first-run" number="02" title="First run">
+            <p>
+              Launch it. If your shell hasn't picked up the new <Mono>PATH</Mono>, open a fresh
+              terminal window. You land on the dashboard with News, Watchlist, Calendar and Notes.
+            </p>
+            <Code>apeterm</Code>
+          </Section>
+
+          <Section id="cli" number="03" title="CLI">
+            <p>Beyond the interactive terminal, a few subcommands run outside the TUI.</p>
+            <dl className="mt-6 divide-y divide-border/70 border-y border-border/70">
               {[
                 {
                   cmd: "apeterm sec-sync",
@@ -225,29 +129,27 @@ function DocsPage() {
                 },
                 {
                   cmd: "apeterm --check-locales",
-                  desc: "Validate the bundled en/de translation files.",
+                  desc: "Validate the bundled en / de translation files.",
                 },
               ].map((row) => (
-                <div key={row.cmd} className="rounded-2xl border border-border/70 bg-white/60 p-3">
-                  <pre className="overflow-x-auto rounded-xl border border-border/60 bg-[linear-gradient(180deg,oklch(0.99_0.003_90),oklch(0.96_0.005_90))] p-4 font-mono text-sm">
-                    <code>{row.cmd}</code>
-                  </pre>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{row.desc}</p>
+                <div
+                  key={row.cmd}
+                  className="grid grid-cols-1 gap-2 py-4 md:grid-cols-[240px_1fr] md:gap-8"
+                >
+                  <dt className="font-mono text-[13px] text-foreground">{row.cmd}</dt>
+                  <dd className="text-sm leading-6 text-muted-foreground">{row.desc}</dd>
                 </div>
               ))}
-            </div>
-          </GlowCard>
+            </dl>
+          </Section>
 
-          <GlowCard id="components" className="p-6">
-            <h2 className="text-xl font-semibold">Keybindings</h2>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              Vim-style motions throughout — no command palette, just single keys.
-            </p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Section id="keys" number="04" title="Keys">
+            <p>Vim-style motions throughout. No command palette — just single keys.</p>
+            <dl className="mt-6 divide-y divide-border/70 border-y border-border/70">
               {[
                 ["j / k", "move selection"],
                 ["h / v", "split focused panel"],
-                ["Ctrl+h/j/k/l", "resize panel"],
+                ["Ctrl + h/j/k/l", "resize panel"],
                 ["a", "open the agent"],
                 ["/", "open search"],
                 [",", "open settings"],
@@ -257,38 +159,133 @@ function DocsPage() {
               ].map(([key, desc]) => (
                 <div
                   key={key}
-                  className="flex items-center justify-between rounded-2xl border border-border/70 bg-white/70 px-3 py-2.5 shadow-[0_12px_30px_-26px_oklch(0.24_0.03_265/0.35)]"
+                  className="grid grid-cols-[130px_1fr] items-center gap-8 py-3 md:grid-cols-[180px_1fr]"
                 >
-                  <kbd className="font-mono text-xs text-foreground">{key}</kbd>
-                  <span className="text-xs text-muted-foreground">{desc}</span>
+                  <kbd className="font-mono text-[13px] text-foreground">{key}</kbd>
+                  <span className="text-sm text-muted-foreground">{desc}</span>
                 </div>
               ))}
-            </div>
-          </GlowCard>
+            </dl>
+          </Section>
 
-          <GlowCard id="faq" className="p-6">
-            <h2 className="text-xl font-semibold">FAQ</h2>
-            <div className="mt-4 space-y-4 text-sm leading-7 text-muted-foreground">
-              <p>
-                <span className="font-medium text-foreground">Where does config live?</span> A
-                single <code className="font-mono text-foreground">config.json</code> in your
-                platform's app-config directory holds watchlists, provider keys and preferences.
-                Delete it to reset.
-              </p>
-              <p>
-                <span className="font-medium text-foreground">
-                  How do I add a data provider key?
-                </span>{" "}
-                Open settings with <kbd className="font-mono">,</kbd>, or set{" "}
-                <code className="font-mono text-foreground">APETERM_FINNHUB_API_KEY</code>,{" "}
-                <code className="font-mono text-foreground">APETERM_FMP_API_KEY</code> or{" "}
-                <code className="font-mono text-foreground">OPENROUTER_API_KEY</code> as environment
-                variables before launch.
-              </p>
+          <Section id="config" number="05" title="Config">
+            <p>
+              A single <Mono>config.json</Mono> in your platform's app-config directory holds
+              watchlists, provider keys and preferences. Delete it to reset.
+            </p>
+          </Section>
+
+          <Section id="providers" number="06" title="Providers">
+            <p>
+              Open settings with <Kbd>,</Kbd>, or set these environment variables before launch:
+            </p>
+            <ul className="mt-5 space-y-2 font-mono text-[13px]">
+              <li>
+                <Mono>APETERM_FINNHUB_API_KEY</Mono>
+                <span className="ml-3 text-muted-foreground">Finnhub — deeper fundamentals</span>
+              </li>
+              <li>
+                <Mono>APETERM_FMP_API_KEY</Mono>
+                <span className="ml-3 text-muted-foreground">FMP — financial statements</span>
+              </li>
+              <li>
+                <Mono>OPENROUTER_API_KEY</Mono>
+                <span className="ml-3 text-muted-foreground">Agent — model of your choice</span>
+              </li>
+            </ul>
+          </Section>
+
+          <Section id="faq" number="07" title="FAQ">
+            <div className="space-y-6">
+              <div>
+                <div className="text-foreground">Where does my data live?</div>
+                <p className="mt-1.5 text-muted-foreground">
+                  A single SQLite file on your machine, alongside <Mono>config.json</Mono>. Nothing
+                  is synced unless you turn it on.
+                </p>
+              </div>
+              <div>
+                <div className="text-foreground">Is telemetry on by default?</div>
+                <p className="mt-1.5 text-muted-foreground">No.</p>
+              </div>
+              <div>
+                <div className="text-foreground">Windows?</div>
+                <p className="mt-1.5 text-muted-foreground">
+                  Not yet. WSL works in the meantime.
+                </p>
+              </div>
             </div>
-          </GlowCard>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          </Section>
+
+          <Divider />
+
+          <div className="pb-16 text-sm text-muted-foreground">
+            Found something wrong?{" "}
+            <a
+              href="https://github.com/LongdeLao/apeterm/issues"
+              className="text-foreground underline underline-offset-4 hover:opacity-80"
+            >
+              File an issue
+            </a>
+            .
+          </div>
+        </article>
+      </div>
+    </div>
+  );
+}
+
+function Section({
+  id,
+  number,
+  title,
+  children,
+}: {
+  id: string;
+  number: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="mt-20 scroll-mt-24">
+      <div className="flex items-baseline gap-4">
+        <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+          {number}
+        </span>
+        <h2 className="font-display text-3xl tracking-[-0.01em] md:text-4xl">{title}</h2>
+      </div>
+      <div className="mt-6 space-y-4 text-[15px] leading-7 text-muted-foreground">{children}</div>
+    </section>
+  );
+}
+
+function Divider() {
+  return <div className="mt-16 h-px w-full bg-border/70" />;
+}
+
+function Mono({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="rounded-md border border-border/60 bg-secondary/60 px-1.5 py-0.5 font-mono text-[13px] text-foreground">
+      {children}
+    </code>
+  );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[12px] text-foreground shadow-sm">
+      {children}
+    </kbd>
+  );
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+  return (
+    <pre className="mt-6 overflow-x-auto rounded-xl border border-border/70 bg-terminal-bg px-5 py-4 font-mono text-[13px] leading-relaxed text-terminal-fg">
+      <code>
+        <span className="mr-3 select-none text-terminal-muted">$</span>
+        {children}
+      </code>
+    </pre>
   );
 }
