@@ -3,20 +3,20 @@ import { ArrowUpRight, Github, Star } from "lucide-react";
 import { FloatingNav } from "@/components/aceternity/floating-nav";
 import { formatCount, useGitHubStats } from "@/hooks/use-github-stats";
 
+const APE_LOGO = `  ／三ヽ
+(6( ･ ･|)
+ |　( ┴)`;
+
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-3.5 group">
-      <img
-        src="/logo.png"
-        alt="ApeTerm logo"
-        className="h-14 w-14 rounded-[20px] border border-border-strong bg-card object-cover p-1.5 shadow-[0_18px_40px_-24px_oklch(0.24_0.03_265/0.38)]"
-      />
-      <div className="leading-none">
-        <div className="font-mono text-[22px] tracking-tight text-foreground">apeterm</div>
-        <div className="font-mono text-[12px] uppercase tracking-[0.26em] text-muted-foreground">
-          terminal alpha
-        </div>
-      </div>
+    <Link to="/" className="flex items-center gap-3 group">
+      <pre
+        aria-hidden
+        className="rounded-[12px] border border-border-strong bg-card px-2 py-1 font-mono text-[9px] leading-[1.05] text-foreground shadow-[0_18px_40px_-24px_oklch(0.24_0.03_265/0.38)]"
+      >
+        {APE_LOGO}
+      </pre>
+      <span className="font-mono text-[20px] tracking-tight text-foreground">apeterm</span>
     </Link>
   );
 }

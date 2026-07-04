@@ -1,4 +1,4 @@
-import { GitFork, Star, CircleDot } from "lucide-react";
+import { GitFork, Star, CircleDot, Code2 } from "lucide-react";
 import { formatCount, useGitHubStats } from "@/hooks/use-github-stats";
 
 const stack = [
@@ -54,7 +54,7 @@ export function OpenSource() {
             href="https://github.com/LongdeLao/apeterm"
             className="mt-8 inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-secondary"
           >
-            <span className="font-mono">{"</>"}</span> Browse the repo
+            <Code2 className="h-4 w-4" /> Browse the repo
           </a>
         </div>
 

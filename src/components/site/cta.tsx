@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
 import { Reveal } from "./reveal";
 import { cn } from "@/lib/utils";
 
@@ -68,19 +69,28 @@ export function CTA() {
           </span>
         </button>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
           {platform ? (
-            <span>
-              detected: <span className="text-foreground/80">{platform}</span> — supported ✓
+            <span className="inline-flex items-center gap-1.5">
+              {platform.startsWith("mac") ? (
+                <AppleIcon className="h-3.5 w-3.5" />
+              ) : (
+                <LinuxIcon className="h-3.5 w-3.5" />
+              )}
+              detected: <span className="text-foreground/80">{platform}</span> — supported
             </span>
           ) : (
             <>
-              <span>macOS (Apple Silicon)</span>
-              <span>·</span>
-              <span>Linux (x86_64)</span>
+              <span className="inline-flex items-center gap-1.5">
+                <AppleIcon className="h-3.5 w-3.5" /> macOS · Apple Silicon
+              </span>
+              <span className="text-border">·</span>
+              <span className="inline-flex items-center gap-1.5">
+                <LinuxIcon className="h-3.5 w-3.5" /> Linux · x86_64
+              </span>
             </>
           )}
-          <span>·</span>
+          <span className="text-border">·</span>
           <a
             href="https://github.com/LongdeLao/apeterm"
             className="underline underline-offset-4 hover:text-foreground"
