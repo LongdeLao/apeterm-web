@@ -44,9 +44,8 @@ export function Hero() {
             transition={{ duration: 0.7, delay: 0.9 }}
             className="mt-7 max-w-xl text-[17px] leading-relaxed text-muted-foreground text-balance"
           >
-            Live prices, institutional &amp; insider filings, news and a watchlist agent — in one
-            fast, keyboard-driven terminal. Free and local-first: your data stays in a SQLite file
-            on your machine.
+            Prices, filings and news in one fast, keyboard-driven terminal. Local-first — your
+            data stays in a SQLite file on your machine.
           </motion.p>
 
           <motion.div
@@ -72,16 +71,18 @@ export function Hero() {
           </motion.div>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-2 text-[11px] text-muted-foreground">
-            {["macOS (Apple Silicon)", "Linux (x86_64)", "local-first", "open-source"].map(
-              (item) => (
-                <span
-                  key={item}
-                  className="rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono"
-                >
-                  {item}
-                </span>
-              ),
-            )}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
+              <AppleIcon className="h-3 w-3" /> macOS · Apple Silicon
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
+              <LinuxIcon className="h-3 w-3" /> Linux · x86_64
+            </span>
+            <span className="rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
+              local-first
+            </span>
+            <span className="rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
+              open-source
+            </span>
           </div>
         </div>
 
