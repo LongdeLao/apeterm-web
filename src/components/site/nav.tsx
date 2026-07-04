@@ -5,18 +5,13 @@ import { formatCount, useGitHubStats } from "@/hooks/use-github-stats";
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-3.5 group">
+    <Link to="/" className="flex items-center gap-3 group">
       <img
         src="/logo.png"
         alt="ApeTerm logo"
-        className="h-14 w-14 rounded-[20px] border border-border-strong bg-card object-cover p-1.5 shadow-[0_18px_40px_-24px_oklch(0.24_0.03_265/0.38)]"
+        className="h-11 w-11 rounded-[14px] border border-border-strong bg-card object-contain p-1 shadow-[0_18px_40px_-24px_oklch(0.24_0.03_265/0.38)]"
       />
-      <div className="leading-none">
-        <div className="font-mono text-[22px] tracking-tight text-foreground">apeterm</div>
-        <div className="font-mono text-[12px] uppercase tracking-[0.26em] text-muted-foreground">
-          terminal alpha
-        </div>
-      </div>
+      <span className="font-mono text-[19px] tracking-tight text-foreground">apeterm</span>
     </Link>
   );
 }
