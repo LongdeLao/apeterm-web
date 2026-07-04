@@ -18,11 +18,16 @@ export function Ticker() {
   const track = [...items, ...items];
   return (
     <div className="group relative overflow-hidden border-y border-border bg-surface/60">
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center gap-2 bg-gradient-to-r from-background via-background/95 to-transparent px-5 py-3">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[oklch(0.6_0.14_145)]" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          sample
+        </span>
+      </div>
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-background to-transparent" />
-      <div className="flex w-max animate-ticker gap-10 py-3 font-mono text-[12px] group-hover:[animation-play-state:paused]">
+      <div className="flex w-max animate-ticker gap-12 py-3 pl-32 font-mono text-[12px] group-hover:[animation-play-state:paused]">
         {track.map(([sym, px, chg, up], i) => (
-          <div key={i} className="flex items-center gap-2 whitespace-nowrap">
+          <div key={i} className="flex items-center gap-3 whitespace-nowrap">
             <span className="text-foreground">{sym}</span>
             <span className="tabular-nums text-muted-foreground">{px}</span>
             <span
