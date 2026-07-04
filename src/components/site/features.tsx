@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { HoverEffect } from "@/components/aceternity/hover-effect";
+import { Reveal } from "./reveal";
 
 interface Cell {
   eyebrow: string;
@@ -11,7 +13,9 @@ interface Cell {
 
 function Sparkline() {
   const pts = [4, 8, 6, 12, 9, 14, 11, 18, 15, 22, 19, 26, 24, 30];
-  const w = 220, h = 60, max = 32;
+  const w = 220,
+    h = 60,
+    max = 32;
   const d = pts
     .map((v, i) => `${i === 0 ? "M" : "L"} ${(i / (pts.length - 1)) * w} ${h - (v / max) * h}`)
     .join(" ");
@@ -27,7 +31,7 @@ const cells: Cell[] = [
   {
     eyebrow: "Market data",
     title: "Prices that keep up.",
-    body: "Real-time quotes, historicals and fundamentals for equities, ETFs and crypto — streamed straight into your terminal.",
+    body: "Streaming stock quotes and a live Binance feed for crypto, right in the terminal. Bring your own Finnhub or FMP key for deeper fundamentals.",
     visual: (
       <div className="mt-6 rounded-lg border border-border bg-card p-4 font-mono text-[12px]">
         <div className="flex items-baseline justify-between">
@@ -44,15 +48,20 @@ const cells: Cell[] = [
     className: "md:col-span-2",
   },
   {
-    eyebrow: "SEC filings",
-    title: "10-Ks, without the scroll.",
-    body: "Full-text filings, red-lined diffs and AI summaries for every 10-K, 10-Q and 8-K.",
+    eyebrow: "Institutional & insider",
+    title: "See who's actually buying.",
+    body: "13F holding changes, Form 4 insider trades and congressional disclosures, pulled straight from SEC EDGAR.",
     visual: (
       <div className="mt-6 space-y-1.5 rounded-lg border border-border bg-card p-4 font-mono text-[12px]">
-        {["10-K   AAPL   Nov 01", "10-Q   MSFT   Oct 24", "8-K    NVDA   Oct 22", "10-K   TSLA   Oct 18"].map((r) => (
+        {[
+          "13F   Buy    NVDA   +2.1M sh",
+          "F4    Sell   TSLA   180K sh",
+          "13F   Cut    AAPL   -640K sh",
+          "F4    Buy    AMD    40K sh",
+        ].map((r) => (
           <div key={r} className="flex justify-between text-muted-foreground">
-            <span>{r.split(/\s+/).slice(0, 2).join("  ")}</span>
-            <span>{r.split(/\s+/).slice(2).join(" ")}</span>
+            <span>{r.split(/\s+/).slice(0, 3).join("  ")}</span>
+            <span>{r.split(/\s+/).slice(3).join(" ")}</span>
           </div>
         ))}
       </div>
@@ -61,59 +70,55 @@ const cells: Cell[] = [
   {
     eyebrow: "News",
     title: "Signal, not noise.",
-    body: "Curated feeds per ticker, deduplicated across sources, ranked by impact.",
+    body: "Per-ticker feeds pulled from RSS wires and deduplicated across sources.",
     visual: (
       <ul className="mt-6 space-y-3 text-sm">
         <li className="border-l-2 border-foreground pl-3">
           <div>Fed holds rates steady, signals two cuts in 2026</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">Reuters · 4m ago</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">wire · 4m ago</div>
         </li>
         <li className="border-l-2 border-border pl-3">
           <div>NVIDIA reports record data-center revenue</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">Bloomberg · 22m ago</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">wire · 22m ago</div>
         </li>
       </ul>
     ),
   },
   {
-    eyebrow: "AI",
-    title: "An analyst at the prompt.",
-    body: "Ask questions in plain English. Get answers backed by filings, prices and your own notes — cited, not hallucinated.",
+    eyebrow: "Agent",
+    title: "An assistant that can act.",
+    body: "Ask it to build a watchlist or open a ticker and it calls real tools against your app state — grounded in what's on screen, not guessing. Bring your own OpenRouter-compatible key.",
     visual: (
       <div className="mt-6 space-y-2 rounded-lg border border-border bg-card p-4 font-mono text-[12px]">
-        <div className="text-muted-foreground">› why did NVDA move today?</div>
+        <div className="text-muted-foreground">› add UBER, DASH to a new "delivery" list</div>
         <div>
-          Data-center revenue grew{" "}
-          <span className="rounded bg-secondary px-1">+94% YoY</span>, beating consensus
-          by 6.2%. See{" "}
-          <span className="underline underline-offset-2">10-Q p. 14</span>.
+          adding UBER, DASH <span className="rounded bg-secondary px-1">tool_call</span>
         </div>
+        <div className="text-muted-foreground">Done — created "delivery" with 2 symbols.</div>
       </div>
     ),
     className: "md:col-span-2",
   },
   {
     eyebrow: "Watchlists",
-    title: "Yours, in plain text.",
-    body: "Watchlists live as files — versioned, portable, syncable with git.",
+    title: "Named lists, stocks and crypto.",
+    body: "As many watchlists as you want, stored locally in a single config file — no account, nothing synced anywhere.",
     visual: (
       <pre className="mt-6 rounded-lg border border-border bg-card p-4 font-mono text-[12px] text-muted-foreground">
-{`# ~/apeterm/watchlists/ai.txt
-NVDA
-AMD
-AVGO
-TSM
-SMCI`}
+        {`ai (active)
+  NVDA  AMD  AVGO  TSM
+crypto
+  BTC  ETH  SOL`}
       </pre>
     ),
   },
   {
     eyebrow: "Keyboard first",
-    title: "Every command, one keystroke away.",
-    body: "A command palette that gets out of the way. Vim-style motions built in.",
+    title: "Vim motions, no mouse required.",
+    body: "j/k to move, h/v to split panels, / to search, a to ask the agent, g to switch language.",
     visual: (
       <div className="mt-6 flex flex-wrap gap-2 font-mono text-[12px]">
-        {["⌘K palette", "gq quote", "gf filings", "gn news", "ga ask", "/ search"].map((k) => (
+        {["j/k move", "h/v split", "a agent", "/ search", ", settings", "g locale"].map((k) => (
           <span key={k} className="rounded border border-border bg-card px-2 py-1">
             {k}
           </span>
@@ -127,31 +132,27 @@ SMCI`}
 export function Features() {
   return (
     <section id="features" className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-      <div className="max-w-2xl">
+      <Reveal className="max-w-2xl">
         <div className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
           02 · Capabilities
         </div>
         <h2 className="mt-4 font-display text-4xl leading-[1.05] md:text-5xl">
           Everything a serious retail investor needs, in one calm window.
         </h2>
-      </div>
+      </Reveal>
 
-      <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
+      <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3">
         {cells.map((c, i) => (
-          <div
-            key={i}
-            className={cn(
-              "flex flex-col bg-background p-8 transition-colors hover:bg-surface",
-              c.className,
-            )}
-          >
-            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-              {c.eyebrow}
+          <HoverEffect key={i} className={cn("min-h-full", c.className)}>
+            <div className="flex h-full flex-col p-8">
+              <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                {c.eyebrow}
+              </div>
+              <h3 className="mt-3 font-display text-2xl leading-tight">{c.title}</h3>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">{c.body}</p>
+              <div className="mt-auto">{c.visual}</div>
             </div>
-            <h3 className="mt-3 font-display text-2xl leading-tight">{c.title}</h3>
-            <p className="mt-2 max-w-md text-sm text-muted-foreground">{c.body}</p>
-            <div className="mt-auto">{c.visual}</div>
-          </div>
+          </HoverEffect>
         ))}
       </div>
     </section>

@@ -5,6 +5,7 @@ import { Ticker } from "@/components/site/ticker";
 import { Features } from "@/components/site/features";
 import { Workflow } from "@/components/site/workflow";
 import { OpenSource } from "@/components/site/open-source";
+import { Compare } from "@/components/site/compare";
 import { FAQ } from "@/components/site/faq";
 import { CTA } from "@/components/site/cta";
 import { SiteFooter } from "@/components/site/footer";
@@ -23,6 +24,7 @@ function Index() {
         <Features />
         <Workflow />
         <OpenSource />
+        <Compare />
         <FAQ />
         <CTA />
       </main>

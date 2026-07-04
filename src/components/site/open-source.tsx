@@ -1,27 +1,37 @@
-const stats = [
-  { k: "2,412", v: "GitHub stars" },
-  { k: "128", v: "Contributors" },
-  { k: "MIT", v: "License" },
-  { k: "0", v: "Trackers" },
+import { GitFork, Star, CircleDot } from "lucide-react";
+import { formatCount, useGitHubStats } from "@/hooks/use-github-stats";
+
+const stack = [
+  { k: "Language", v: "Rust, ratatui + crossterm for the TUI" },
+  { k: "Storage", v: "Local SQLite — nothing leaves your machine" },
+  { k: "Market data", v: "yfinance stream · Binance websocket" },
+  { k: "Filings", v: "SEC EDGAR — 13F, Form 4, congressional" },
+  { k: "Agent", v: "Bring your own key via OpenRouter" },
+  { k: "Telemetry", v: "None by default" },
 ];
 
-const quotes = [
-  {
-    q: "Finally a terminal that treats retail investors like adults. My whole research workflow lives here now.",
-    n: "Maya Chen",
-    r: "Independent analyst",
-  },
-  {
-    q: "It's what Bloomberg would build if Bloomberg were founded in a coffee shop in 2025.",
-    n: "Jonas Weber",
-    r: "CS student, ETH Zürich",
-  },
-  {
-    q: "The 10-K diff view alone is worth switching for. Everything else is a bonus.",
-    n: "Priya Iyer",
-    r: "Software engineer",
-  },
-];
+function RepoStats() {
+  const { data } = useGitHubStats();
+  if (!data) return null;
+  const items = [
+    { icon: Star, label: "stars", value: data.stars },
+    { icon: GitFork, label: "forks", value: data.forks },
+    { icon: CircleDot, label: "open issues", value: data.openIssues },
+  ];
+  return (
+    <div className="mt-6 flex flex-wrap gap-2">
+      {items.map((s) => (
+        <span
+          key={s.label}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 font-mono text-[12px] tabular-nums text-muted-foreground"
+        >
+          <s.icon className="h-3.5 w-3.5" />
+          {formatCount(s.value)} {s.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function OpenSource() {
   return (
@@ -32,45 +42,32 @@ export function OpenSource() {
             04 · Open source
           </div>
           <h2 className="mt-4 font-display text-4xl leading-[1.05] md:text-5xl">
-            Built in the open, owned by nobody.
+            The source is the whole pitch.
           </h2>
           <p className="mt-6 max-w-md text-muted-foreground">
-            ApeTerm is MIT-licensed and community-run. No paywalls, no analytics
-            phoning home, no seat-based enterprise upsell. Read the source, file
-            an issue, ship a PR.
+            No paywalls, no seat-based upsell, no telemetry phoning home unless you turn it on. Read
+            the code, file an issue, or fork it and make it yours — it's a young project, so PRs
+            matter more than praise.
           </p>
-
-          <dl className="mt-10 grid grid-cols-2 gap-y-6 border-t border-border pt-8">
-            {stats.map((s) => (
-              <div key={s.v}>
-                <dt className="font-display text-3xl">{s.k}</dt>
-                <dd className="mt-1 text-sm text-muted-foreground">{s.v}</dd>
-              </div>
-            ))}
-          </dl>
+          <RepoStats />
+          <a
+            href="https://github.com/LongdeLao/apeterm"
+            className="mt-8 inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:bg-secondary"
+          >
+            <span className="font-mono">{"</>"}</span> Browse the repo
+          </a>
         </div>
 
-        <div className="grid gap-4">
-          {quotes.map((q) => (
-            <figure
-              key={q.n}
-              className="rounded-xl border border-border bg-card p-6 transition-colors hover:border-border-strong"
-            >
-              <blockquote className="text-[15px] leading-relaxed text-foreground/90">
-                "{q.q}"
-              </blockquote>
-              <figcaption className="mt-4 flex items-center gap-3 text-sm">
-                <span className="grid h-8 w-8 place-items-center rounded-full border border-border font-mono text-[11px]">
-                  {q.n.split(" ").map((p) => p[0]).join("")}
-                </span>
-                <span>
-                  <span className="text-foreground">{q.n}</span>{" "}
-                  <span className="text-muted-foreground">· {q.r}</span>
-                </span>
-              </figcaption>
-            </figure>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-6 border-t border-border pt-8 md:border-t-0 md:border-l md:pl-10 md:pt-0">
+          {stack.map((s) => (
+            <div key={s.k}>
+              <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                {s.k}
+              </dt>
+              <dd className="mt-1.5 text-[15px] leading-snug text-foreground/90">{s.v}</dd>
+            </div>
           ))}
-        </div>
+        </dl>
       </div>
     </section>
   );
