@@ -3,6 +3,7 @@ import { ArrowUpRight, Github } from "lucide-react";
 import { Lamp } from "@/components/aceternity/lamp";
 import { Spotlight } from "@/components/aceternity/spotlight";
 import { TextGenerate } from "@/components/aceternity/text-generate";
+import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
 import { TerminalMock } from "./terminal-mock";
 
 export function Hero() {
