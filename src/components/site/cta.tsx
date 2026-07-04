@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
 import { Reveal } from "./reveal";
 import { cn } from "@/lib/utils";
 
