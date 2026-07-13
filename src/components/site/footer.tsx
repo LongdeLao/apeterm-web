@@ -1,26 +1,29 @@
+import { useI18n } from "@/lib/i18n";
+
 export function SiteFooter() {
+  const { t } = useI18n();
   const cols = [
     {
-      h: "Product",
+      h: t.footer.cols[0][0],
       links: [
-        { l: "Features", href: "#features" },
-        { l: "Terminal", href: "#terminal" },
-        { l: "Install", href: "#download" },
+        { l: t.footer.cols[0][1], href: "#features" },
+        { l: t.footer.cols[0][2], href: "#terminal" },
+        { l: t.footer.cols[0][3], href: "#download" },
       ],
     },
     {
-      h: "Source",
+      h: t.footer.cols[1][0],
       links: [
-        { l: "GitHub", href: "https://github.com/LongdeLao/apeterm" },
-        { l: "Issues", href: "https://github.com/LongdeLao/apeterm/issues" },
-        { l: "Releases", href: "https://github.com/LongdeLao/apeterm/releases" },
+        { l: t.footer.cols[1][1], href: "https://github.com/LongdeLao/apeterm" },
+        { l: t.footer.cols[1][2], href: "https://github.com/LongdeLao/apeterm/issues" },
+        { l: t.footer.cols[1][3], href: "https://github.com/LongdeLao/apeterm/releases" },
       ],
     },
     {
-      h: "Resources",
+      h: t.footer.cols[2][0],
       links: [
-        { l: "Docs", href: "/docs" },
-        { l: "FAQ", href: "#faq" },
+        { l: t.footer.cols[2][1], href: "/docs" },
+        { l: t.footer.cols[2][2], href: "#faq" },
       ],
     },
   ];
@@ -37,7 +40,7 @@ export function SiteFooter() {
             <span className="font-mono text-[15px]">apeterm</span>
           </div>
           <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-            An open-source investment terminal, built in Rust for people who like building things.
+            {t.footer.body}
           </p>
         </div>
         {cols.map((c) => (
@@ -64,7 +67,7 @@ export function SiteFooter() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground md:flex-row">
           <div>© 2026 ApeTerm</div>
           <div className="font-mono">
-            not investment advice · not a bank · not your keys, not your terminal
+            {t.footer.legal}
           </div>
         </div>
       </div>

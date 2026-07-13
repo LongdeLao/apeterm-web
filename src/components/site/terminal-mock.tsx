@@ -1,19 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
-
-const ape = `      / ≡ ヽ
-    (6(  ·  ·|)
-     |    ( ⊥ )`;
-
-type Panel = "watchlist" | "news" | "sec" | "agent";
-
-const panels: { id: Panel; label: string; key: string }[] = [
-  { id: "watchlist", label: "watchlist", key: "1" },
-  { id: "news", label: "news", key: "2" },
-  { id: "sec", label: "sec", key: "3" },
-  { id: "agent", label: "agent", key: "a" },
-];
+import { useI18n } from "@/lib/i18n";
 
 interface Row {
   sym: string;
@@ -30,144 +17,39 @@ const initialRows: Row[] = [
   { sym: "SPY", name: "S&P 500", px: 601.12, chg: 0.18 },
 ];
 
-const newsItems = [
-  { t: "4m", src: "wire", head: "Fed holds rates steady, signals two cuts in 2026" },
-  { t: "22m", src: "wire", head: "NVIDIA reports record data-center revenue" },
-  { t: "38m", src: "rss", head: "Apple supplier checks point to strong iPhone cycle" },
-  { t: "1h", src: "wire", head: "Oil slips as OPEC+ weighs output increase" },
-  { t: "2h", src: "rss", head: "Congress trading tracker: 3 new NVDA disclosures" },
+const newsTimes = [
+  { t: "4m", src: "wire" },
+  { t: "22m", src: "wire" },
+  { t: "38m", src: "rss" },
+  { t: "1h", src: "wire" },
+  { t: "2h", src: "rss" },
 ];
 
-const secItems = [
-  { form: "13F", act: "Buy", sym: "NVDA", qty: "+2.1M sh", up: true },
-  { form: "F4", act: "Sell", sym: "TSLA", qty: "-180K sh", up: false },
-  { form: "13F", act: "Cut", sym: "AAPL", qty: "-640K sh", up: false },
-  { form: "F4", act: "Buy", sym: "AMD", qty: "+40K sh", up: true },
-  { form: "13F", act: "New", sym: "AVGO", qty: "+890K sh", up: true },
-];
-
-const agentScript = [
-  { who: "you" as const, text: 'add UBER and DASH to a new "delivery" list' },
-  { who: "tool" as const, text: 'create_watchlist(name="delivery")' },
-  { who: "tool" as const, text: "add_symbols([UBER, DASH] → delivery)" },
-  {
-    who: "ape" as const,
-    text: 'Done — created "delivery" with 2 symbols. UBER is up 1.8% today; DASH reports earnings Thursday.',
-  },
-];
-
-/** Random-walk hook: nudges one price every ~1.6s and reports flash direction. */
+/** Random-walk hook: nudges one price every ~1.6s. */
 function useLivePrices() {
   const [rows, setRows] = useState(initialRows);
-  const [flash, setFlash] = useState<Record<string, "up" | "down">>({});
 
   useEffect(() => {
     const id = setInterval(() => {
       setRows((prev) => {
         const i = Math.floor(Math.random() * prev.length);
-        const sym = prev[i].sym;
-        const next = prev.map((r, j) => {
+        return prev.map((r, j) => {
           if (j !== i) return r;
           const delta = r.px * (Math.random() - 0.48) * 0.0015;
           return { ...r, px: r.px + delta, chg: r.chg + (delta / r.px) * 100 };
         });
-        const dir: "up" | "down" = next[i].px >= prev[i].px ? "up" : "down";
-        setFlash((f) => ({ ...f, [sym]: dir }));
-        setTimeout(
-          () =>
-            setFlash((f) => {
-              const { [sym]: _, ...rest } = f;
-              return rest;
-            }),
-          600,
-        );
-        return next;
       });
     }, 1600);
     return () => clearInterval(id);
   }, []);
 
-  return { rows, flash };
-}
-
-/** Types out agentScript line by line, looping while the panel is active. */
-function useAgentScript(active: boolean) {
-  const [lines, setLines] = useState<{ who: "you" | "tool" | "ape"; text: string }[]>([]);
-  const [typing, setTyping] = useState("");
-
-  useEffect(() => {
-    if (!active) return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const wait = (ms: number) => new Promise<void>((r) => (timer = setTimeout(r, ms)));
-
-    const run = async () => {
-      while (!cancelled) {
-        setLines([]);
-        await wait(600);
-        for (const line of agentScript) {
-          if (cancelled) return;
-          if (line.who === "you") {
-            for (let i = 1; i <= line.text.length; i++) {
-              if (cancelled) return;
-              setTyping(line.text.slice(0, i));
-              await wait(28);
-            }
-            setTyping("");
-            setLines((l) => [...l, line]);
-          } else {
-            await wait(line.who === "tool" ? 550 : 850);
-            if (cancelled) return;
-            setLines((l) => [...l, line]);
-          }
-        }
-        await wait(4500);
-      }
-    };
-    run();
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      setTyping("");
-      setLines([]);
-    };
-  }, [active]);
-
-  return { lines, typing };
+  return rows;
 }
 
 export function TerminalMock({ className }: { className?: string }) {
-  const [panel, setPanel] = useState<Panel>("watchlist");
-  const { rows, flash } = useLivePrices();
-  const { lines, typing } = useAgentScript(panel === "agent");
+  const { t } = useI18n();
+  const rows = useLivePrices();
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // The product is keyboard-driven, so the demo is too: while the mock is
-  // hovered, 1/2/3/a switch panels like in the real app.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    let hovered = false;
-    const enter = () => (hovered = true);
-    const leave = () => (hovered = false);
-    const onKey = (e: KeyboardEvent) => {
-      if (!hovered || e.metaKey || e.ctrlKey || e.altKey) return;
-      const hit = panels.find((p) => p.key === e.key);
-      if (hit) {
-        e.preventDefault();
-        setPanel(hit.id);
-      }
-    };
-    el.addEventListener("mouseenter", enter);
-    el.addEventListener("mouseleave", leave);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      el.removeEventListener("mouseenter", enter);
-      el.removeEventListener("mouseleave", leave);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, []);
 
   const [clock, setClock] = useState("--:--");
   useEffect(() => {
@@ -186,232 +68,145 @@ export function TerminalMock({ className }: { className?: string }) {
     <div
       ref={containerRef}
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border-strong bg-terminal-bg text-terminal-fg shadow-[0_30px_80px_-40px_oklch(0.2_0.03_265/0.35)]",
+        "relative overflow-hidden rounded-md border border-white/20 bg-[#2d2d2b] text-[#e8e6df] shadow-[0_24px_70px_-42px_rgba(0,0,0,0.75)]",
         className,
       )}
     >
-      {/* window chrome */}
-      <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
-        <span className="h-3 w-3 rounded-full bg-[oklch(0.72_0.16_28)]" />
-        <span className="h-3 w-3 rounded-full bg-[oklch(0.83_0.15_85)]" />
-        <span className="h-3 w-3 rounded-full bg-[oklch(0.78_0.14_145)]" />
-        <div className="ml-3 flex-1 text-center font-mono text-[11px] tracking-wide text-terminal-muted">
-          apeterm — ~/portfolio — 120×36
+      <div className="flex items-center gap-2 border-b border-white/14 bg-[#393937] px-3 py-1.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-[#ff6159]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+        <div className="ml-4 flex h-5 w-56 items-center rounded bg-white/8 px-3 font-mono text-[10px] text-white/38">
+          Search sessions, agents, files...
         </div>
-        <div className="font-mono text-[11px] tabular-nums text-terminal-muted">{clock}</div>
+        <div className="ml-auto font-mono text-[10px] tabular-nums text-white/48">
+          +119 <span className="text-[#63e087]">+29</span> · {clock}
+        </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-0 font-mono text-[13px]">
-        {/* sidebar */}
-        <aside className="col-span-4 border-r border-white/5 p-4 text-terminal-muted sm:col-span-3">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-white/40">Panels</div>
-          <ul className="mt-3 space-y-1">
-            {panels.map((p) => (
-              <li key={p.id}>
-                <button
-                  onClick={() => setPanel(p.id)}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded px-1.5 py-0.5 text-left transition-colors",
-                    panel === p.id
-                      ? "bg-white/8 text-terminal-fg"
-                      : "hover:bg-white/4 hover:text-terminal-fg/80",
-                  )}
-                >
-                  <span>
-                    {panel === p.id ? "▸ " : "· "}
-                    {p.label}
-                  </span>
-                  <kbd className="rounded border border-white/10 px-1 text-[10px] text-white/35">
-                    {p.key}
-                  </kbd>
-                </button>
-              </li>
+      <div className="grid min-h-[390px] grid-cols-12 font-mono text-[11px] leading-tight">
+        <section className="col-span-5 grid grid-rows-2 border-r border-white/20">
+          <div className="border-b border-white/20 p-4">
+            <PanelTitle title="Nachrichten" tabs={["ALL", "WATCHLIST", "MACRO", "REDDIT", "CRYPTO"]} />
+            <div className="mt-3 grid grid-cols-[42px_42px_1fr] gap-x-3 text-white/84">
+              {newsTimes.map((n, i) => (
+                <div key={i} className="contents">
+                  <span className="text-white/48">{n.t}</span>
+                  <span className="text-white/48">{n.src.toUpperCase()}</span>
+                  <span className="truncate font-semibold">{t.terminal.news[i]}</span>
+                </div>
+              ))}
+              {[
+                "Apple supplier checks point to a stronger cycle",
+                "Stock futures drift before the open",
+                "Congress tracker: new NVDA disclosures",
+                "Oil slips as OPEC+ weighs output increase",
+              ].map((item, i) => (
+                <div key={item} className="contents">
+                  <span className="text-white/48">{i + 1}h</span>
+                  <span className="text-white/48">YF</span>
+                  <span className="truncate">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4">
+            <PanelTitle title="SEC" tabs={["INSTITUTIONAL", "CEOS", "CONGRESS"]} />
+            <div className="mt-3 grid grid-cols-[150px_1fr] gap-4">
+              <div className="space-y-1 text-white/78">
+                {["Berkshire Hathaway", "BlackRock", "Bridgewater Associates", "Citadel Advisors", "Vanguard"].map((name) => (
+                  <div key={name}>
+                    <span className="text-[#62df86]">▲</span> {name}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div className="font-semibold">Berkshire Hathaway</div>
+                <div className="mt-1 text-white/45">13F value $48.2T · Positions 29</div>
+                <div className="mt-4 grid grid-cols-4 gap-x-3 text-white/76">
+                  {["OCCIDENTAL P", "CHUBB LTD", "KRAFT HEINZ", "DELTA AIR"].map((name, i) => (
+                    <div key={name} className="contents">
+                      <span className="col-span-2">{name}</span>
+                      <span>{["264.9M", "34.2M", "325.6M", "39.8M"][i]}</span>
+                      <span className={i === 3 ? "text-[#62df86]" : "text-white/54"}>
+                        {i === 3 ? "New" : ["35.7%", "23.1%", "15.2%"][i]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="col-span-5 border-r border-white/20 p-4">
+          <PanelTitle title="Watchlist" tabs={["MAIN", "CRYPTO", "+"]} activeTitle />
+          <div className="mt-4 grid grid-cols-[76px_18px_80px_72px_62px_54px] gap-x-3 border-t border-white/28 pt-2 text-white/88">
+            {rows.concat([
+              { sym: "GOOGL", name: "Alphabet", px: 359.91, chg: -0.36 },
+              { sym: "JPM", name: "JPMorgan", px: 334.47, chg: 0.12 },
+              { sym: "META", name: "Meta", px: 582.90, chg: -4.90 },
+            ]).map((r) => (
+              <div key={r.sym} className="contents">
+                <span>{r.sym}</span>
+                <span className="text-white/48">•</span>
+                <span className="tabular-nums">{r.px.toFixed(2)}</span>
+                <span className={r.chg >= 0 ? "text-[#62df86]" : "text-[#ff5f57]"}>
+                  {r.chg >= 0 ? "▲" : "▼"} {r.chg >= 0 ? "+" : ""}
+                  {r.chg.toFixed(2)}%
+                </span>
+                <span className="text-white/58">VOL</span>
+                <span className="text-white/58">{Math.abs(r.chg * 12).toFixed(1)}M</span>
+              </div>
             ))}
+          </div>
+          <div className="mt-24 text-right text-[#bd5cff]">ↄ nachbörslich</div>
+        </section>
+
+        <aside className="col-span-2 p-4">
+          <div className="font-semibold">
+            Agent <span className="ml-2 text-[#62df86]">●</span>{" "}
+            <span className="text-white/48">openrouter/free</span>
+          </div>
+          <div className="mt-5 font-semibold">Frag was, ich schau drauf.</div>
+          <ul className="mt-6 space-y-4 text-white/45">
+            <li>Add or remove from watchlist</li>
+            <li>Create a new watchlist</li>
+            <li>Open a stock's details</li>
+            <li>What's on my watchlists?</li>
           </ul>
-          <div className="mt-6 text-[10px] uppercase tracking-[0.18em] text-white/40">Keys</div>
-          <ul className="mt-3 space-y-1.5 text-[12px]">
-            <li>a — ask agent</li>
-            <li>/ — search</li>
-            <li>h/v — split</li>
-            <li>j/k — move</li>
-          </ul>
-          <div className="mt-6 hidden text-[10px] leading-relaxed text-white/25 sm:block">
-            this demo is live — click a panel, or hover and press 1 / 2 / 3 / a
+          <div className="mt-32 border-t border-white/50 pt-2 text-white/58">
+            <span className="text-[#63a4ff]">›</span> frag einfach...
+            <br />
+            ↵ send&nbsp;&nbsp; esc close
           </div>
         </aside>
-
-        {/* main */}
-        <section className="col-span-8 min-h-[380px] p-5 sm:col-span-9">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={panel}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.22 }}
-            >
-              {panel === "watchlist" && <WatchlistPanel rows={rows} flash={flash} />}
-              {panel === "news" && <NewsPanel />}
-              {panel === "sec" && <SecPanel />}
-              {panel === "agent" && <AgentPanel lines={lines} typing={typing} />}
-            </motion.div>
-          </AnimatePresence>
-        </section>
       </div>
     </div>
   );
 }
 
-function WatchlistPanel({ rows, flash }: { rows: Row[]; flash: Record<string, "up" | "down"> }) {
-  return (
-    <div>
-      <pre className="whitespace-pre leading-[1.15] text-terminal-fg">{ape}</pre>
-      <div className="mt-2 text-terminal-muted">
-        apeterm · press <kbd className="rounded border border-white/10 px-1.5 text-[11px]">a</kbd>{" "}
-        to ask the agent, <kbd className="rounded border border-white/10 px-1.5 text-[11px]">/</kbd>{" "}
-        to search
-      </div>
-
-      <div className="mt-6 grid grid-cols-12 gap-x-3 border-b border-white/5 pb-1 text-[11px] uppercase tracking-wider text-white/40">
-        <span className="col-span-2">Sym</span>
-        <span className="col-span-5">Name</span>
-        <span className="col-span-3 text-right">Last</span>
-        <span className="col-span-2 text-right">Chg</span>
-      </div>
-
-      {rows.map((r) => (
-        <div
-          key={r.sym}
-          className={cn(
-            "grid grid-cols-12 gap-x-3 border-b border-white/5 py-1.5 transition-colors duration-500",
-            flash[r.sym] === "up" && "bg-[oklch(0.78_0.16_145/0.08)]",
-            flash[r.sym] === "down" && "bg-[oklch(0.72_0.19_25/0.08)]",
-          )}
-        >
-          <span className="col-span-2 text-terminal-fg">{r.sym}</span>
-          <span className="col-span-5 text-terminal-muted">{r.name}</span>
-          <span className="col-span-3 text-right tabular-nums">{r.px.toFixed(2)}</span>
-          <span
-            className={cn(
-              "col-span-2 text-right tabular-nums",
-              r.chg >= 0 ? "text-terminal-green" : "text-terminal-red",
-            )}
-          >
-            {r.chg >= 0 ? "+" : ""}
-            {r.chg.toFixed(2)}%
-          </span>
-        </div>
-      ))}
-
-      <div className="mt-6 flex items-center gap-2 text-terminal-fg">
-        <span className="text-terminal-amber">›</span>
-        <span className="text-terminal-muted">streaming · yfinance + binance ws</span>
-        <span className="ml-0.5 inline-block h-4 w-[7px] bg-terminal-fg align-middle animate-caret" />
-      </div>
-    </div>
-  );
-}
-
-function NewsPanel() {
-  return (
-    <div>
-      <div className="text-[11px] uppercase tracking-wider text-white/40">News — all tickers</div>
-      <ul className="mt-4 space-y-3.5">
-        {newsItems.map((n, i) => (
-          <motion.li
-            key={n.head}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className="border-l-2 border-white/10 pl-3"
-          >
-            <div className="text-terminal-fg">{n.head}</div>
-            <div className="mt-0.5 text-[11px] text-terminal-muted">
-              {n.src} · {n.t} ago
-            </div>
-          </motion.li>
-        ))}
-      </ul>
-      <div className="mt-6 text-[11px] text-terminal-muted">deduplicated across RSS wires</div>
-    </div>
-  );
-}
-
-function SecPanel() {
-  return (
-    <div>
-      <div className="text-[11px] uppercase tracking-wider text-white/40">
-        SEC EDGAR — recent filings
-      </div>
-      <div className="mt-4 grid grid-cols-12 gap-x-3 border-b border-white/5 pb-1 text-[11px] uppercase tracking-wider text-white/40">
-        <span className="col-span-2">Form</span>
-        <span className="col-span-3">Action</span>
-        <span className="col-span-3">Sym</span>
-        <span className="col-span-4 text-right">Size</span>
-      </div>
-      {secItems.map((s, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.07 }}
-          className="grid grid-cols-12 gap-x-3 border-b border-white/5 py-1.5"
-        >
-          <span className="col-span-2 text-terminal-amber">{s.form}</span>
-          <span className="col-span-3 text-terminal-muted">{s.act}</span>
-          <span className="col-span-3 text-terminal-fg">{s.sym}</span>
-          <span
-            className={cn(
-              "col-span-4 text-right tabular-nums",
-              s.up ? "text-terminal-green" : "text-terminal-red",
-            )}
-          >
-            {s.qty}
-          </span>
-        </motion.div>
-      ))}
-      <div className="mt-6 text-[11px] text-terminal-muted">
-        13F · Form 4 · congressional disclosures — free, no key needed
-      </div>
-    </div>
-  );
-}
-
-function AgentPanel({
-  lines,
-  typing,
+function PanelTitle({
+  title,
+  tabs,
+  activeTitle = false,
 }: {
-  lines: { who: "you" | "tool" | "ape"; text: string }[];
-  typing: string;
+  title: string;
+  tabs: string[];
+  activeTitle?: boolean;
 }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wider text-white/40">
-        Agent — grounded in screen state
+      <div className={cn("font-bold", activeTitle && "inline bg-white px-1 text-[#222]")}>
+        {title}
       </div>
-      <div className="mt-4 space-y-2.5">
-        {lines.map((l, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
-            {l.who === "you" && (
-              <div className="flex gap-2">
-                <span className="text-terminal-amber">›</span>
-                <span className="text-terminal-fg">{l.text}</span>
-              </div>
-            )}
-            {l.who === "tool" && (
-              <div className="flex items-center gap-2 pl-4 text-[12px]">
-                <span className="rounded bg-white/8 px-1.5 py-0.5 text-terminal-blue">tool</span>
-                <span className="text-terminal-muted">{l.text}</span>
-              </div>
-            )}
-            {l.who === "ape" && <div className="max-w-md pl-4 text-terminal-fg/90">{l.text}</div>}
-          </motion.div>
+      <div className="mt-1 flex gap-5 border-b border-white/35 pb-1 text-[10px] font-bold tracking-wide text-white/48">
+        {tabs.map((tab, i) => (
+          <span key={tab} className={i === 0 ? "border-b-2 border-white text-white" : ""}>
+            {tab}
+          </span>
         ))}
-        <div className="flex gap-2">
-          <span className="text-terminal-amber">›</span>
-          {typing !== "" && <span className="text-terminal-fg">{typing}</span>}
-          <span className="inline-block h-4 w-[7px] self-center bg-terminal-fg animate-caret" />
-        </div>
       </div>
     </div>
   );

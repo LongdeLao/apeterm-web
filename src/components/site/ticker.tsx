@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 const items = [
   ["AAPL", "232.14", "+1.24%", true],
@@ -15,13 +16,14 @@ const items = [
 ] as const;
 
 export function Ticker() {
+  const { t } = useI18n();
   const track = [...items, ...items];
   return (
     <div className="group relative overflow-hidden border-y border-border bg-surface/60">
       <div className="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center gap-2 bg-gradient-to-r from-background via-background/95 to-transparent px-5 py-3">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-[oklch(0.6_0.14_145)]" />
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-          sample
+          {t.ticker.label}
         </span>
       </div>
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-background to-transparent" />

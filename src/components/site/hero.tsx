@@ -4,9 +4,12 @@ import { Lamp } from "@/components/aceternity/lamp";
 import { Spotlight } from "@/components/aceternity/spotlight";
 import { TextGenerate } from "@/components/aceternity/text-generate";
 import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
+import { useI18n } from "@/lib/i18n";
 import { TerminalMock } from "./terminal-mock";
 
 export function Hero() {
+  const { t } = useI18n();
+
   return (
     <section className="relative overflow-hidden">
       <Lamp className="absolute inset-0 -z-10">
@@ -27,14 +30,14 @@ export function Hero() {
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card/75 px-3 py-1 font-mono text-[11px] text-muted-foreground shadow-sm backdrop-blur"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-[oklch(0.6_0.14_145)]" />
-            written in Rust · runs in your shell
+            {t.hero.badge}
           </motion.div>
 
           <h1 className="mt-8 font-display text-[52px] leading-[0.98] tracking-[-0.02em] text-balance md:text-[88px]">
-            <TextGenerate words="The open-source" />
+            <TextGenerate words={t.hero.titleA} />
             <br />
             <span className="italic text-muted-foreground/80">
-              <TextGenerate words="investment terminal." delay={0.3} />
+              <TextGenerate words={t.hero.titleB} delay={0.3} />
             </span>
           </h1>
 
@@ -44,8 +47,7 @@ export function Hero() {
             transition={{ duration: 0.7, delay: 0.9 }}
             className="mt-7 max-w-xl text-[17px] leading-relaxed text-muted-foreground text-balance"
           >
-            Prices, filings and news in one fast, keyboard-driven terminal. Local-first — your
-            data stays in a SQLite file on your machine.
+            {t.hero.body}
           </motion.p>
 
           <motion.div
@@ -58,14 +60,14 @@ export function Hero() {
               href="#download"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Install ApeTerm
+              {t.hero.install}
             </a>
             <a
               href="https://github.com/LongdeLao/apeterm"
               className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-white/85 px-4 py-2.5 text-sm text-foreground/90 shadow-[0_14px_36px_-28px_oklch(0.22_0.02_265)] transition-all hover:-translate-y-0.5 hover:bg-white"
             >
               <Github className="h-4 w-4" />
-              Read the repo
+              {t.hero.repo}
               <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
             </a>
           </motion.div>
@@ -78,10 +80,10 @@ export function Hero() {
               <LinuxIcon className="h-3 w-3" /> Linux · x86_64
             </span>
             <span className="rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
-              local-first
+              {t.hero.tags[0]}
             </span>
             <span className="rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
-              open-source
+              {t.hero.tags[1]}
             </span>
           </div>
         </div>

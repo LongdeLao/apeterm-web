@@ -16,7 +16,7 @@ export function GlowCard({ children, className, glowClassName, id }: GlowCardPro
       whileHover={{ y: -4 }}
       transition={{ type: "spring", stiffness: 240, damping: 22 }}
       className={cn(
-        "group relative overflow-hidden rounded-[28px] border border-border/80 bg-white/85 shadow-[0_20px_60px_-38px_oklch(0.32_0.04_55/0.28)] backdrop-blur-sm",
+        "group relative overflow-hidden rounded-lg border border-border/80 bg-white/85 shadow-[0_20px_60px_-38px_oklch(0.32_0.04_55/0.28)] backdrop-blur-sm",
         className,
       )}
     >

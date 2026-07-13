@@ -1,3 +1,4 @@
+import { useI18n } from "@/lib/i18n";
 import { Reveal } from "./reveal";
 
 const steps = [
@@ -11,7 +12,7 @@ const steps = [
     k: "02",
     cmd: "apeterm",
     title: "Open the dashboard.",
-    body: "Press w in the watchlist panel to add a ticker, h/v to split panels, j/k to move — no mouse needed.",
+    body: "Press w in the watchlist view to add a ticker, h/v to split views, j/k to move — no mouse needed.",
   },
   {
     k: "03",
@@ -28,21 +29,20 @@ const steps = [
 ];
 
 export function Workflow() {
+  const { t } = useI18n();
+
   return (
     <section id="workflow" className="border-y border-border bg-surface/60">
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
         <div className="grid gap-16 md:grid-cols-[1fr_1.4fr]">
           <Reveal>
             <div className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              03 · Workflow
+              {t.workflow.eyebrow}
             </div>
             <h2 className="mt-4 font-display text-4xl leading-[1.05] md:text-5xl">
-              From install to insight in four steps.
+              {t.workflow.title}
             </h2>
-            <p className="mt-6 max-w-sm text-muted-foreground">
-              ApeTerm is built for the way you already work — a shell, a keyboard, no dashboards to
-              learn.
-            </p>
+            <p className="mt-6 max-w-sm text-muted-foreground">{t.workflow.body}</p>
           </Reveal>
 
           <ol className="relative">
@@ -55,8 +55,12 @@ export function Workflow() {
                 <code className="inline-block rounded-md border border-border bg-card px-2.5 py-1 font-mono text-[13px]">
                   {s.cmd}
                 </code>
-                <h3 className="mt-3 font-display text-2xl">{s.title}</h3>
-                <p className="mt-1 max-w-md text-sm text-muted-foreground">{s.body}</p>
+                <h3 className="mt-3 font-display text-2xl">
+                  {t.workflow.steps[Number(s.k) - 1][0]}
+                </h3>
+                <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                  {t.workflow.steps[Number(s.k) - 1][1]}
+                </p>
               </li>
             ))}
           </ol>

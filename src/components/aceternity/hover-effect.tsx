@@ -17,7 +17,7 @@ export function HoverEffect({ children, className }: { children: ReactNode; clas
         }}
         transition={{ duration: 0.28, ease: "easeOut" }}
         aria-hidden
-        className="pointer-events-none absolute -inset-px rounded-[30px] bg-[radial-gradient(circle_at_top,oklch(0.9_0.08_70/0.9),transparent_42%),linear-gradient(135deg,oklch(1_0_0),oklch(0.97_0.006_90))] shadow-[0_20px_60px_-34px_oklch(0.3_0.04_55/0.32)]"
+        className="pointer-events-none absolute -inset-px rounded-lg bg-[linear-gradient(135deg,oklch(1_0_0),oklch(0.97_0.006_90))] shadow-[0_20px_60px_-34px_oklch(0.3_0.04_55/0.32)]"
       />
       <motion.div
         variants={{
@@ -25,7 +25,7 @@ export function HoverEffect({ children, className }: { children: ReactNode; clas
           hover: { y: -4 },
         }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className="relative h-full rounded-[28px] border border-border/80 bg-white/82 backdrop-blur-sm"
+        className="relative h-full rounded-lg border border-border/80 bg-white/82 backdrop-blur-sm"
       >
         {children}
       </motion.div>

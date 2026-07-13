@@ -1,6 +1,7 @@
 import { Check, Minus } from "lucide-react";
 import { Reveal } from "./reveal";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 const rows = [
   { what: "Live stock & crypto quotes", ape: true, bb: true, web: true },
@@ -20,21 +21,19 @@ function Mark({ yes }: { yes: boolean }) {
 }
 
 export function Compare() {
+  const { t } = useI18n();
+
   return (
     <section id="compare" className="border-t border-border bg-surface/60">
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
         <Reveal className="max-w-2xl">
           <div className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            05 · The alternative
+            {t.compare.eyebrow}
           </div>
           <h2 className="mt-4 font-display text-4xl leading-[1.05] md:text-5xl">
-            A Bloomberg seat costs $30,000 a year. This costs a git clone.
+            {t.compare.title}
           </h2>
-          <p className="mt-6 max-w-xl text-muted-foreground">
-            ApeTerm won't replace an institutional desk — it's not trying to. It covers what a
-            serious retail investor actually uses, without the seat license or the browser-tab
-            sprawl.
-          </p>
+          <p className="mt-6 max-w-xl text-muted-foreground">{t.compare.body}</p>
         </Reveal>
 
         <Reveal delay={0.1} className="mt-12 overflow-x-auto">
@@ -43,21 +42,21 @@ export function Compare() {
               <tr className="border-b border-border-strong text-left">
                 <th className="py-3 pr-4 font-normal text-muted-foreground" />
                 <th className="w-32 py-3 text-center font-mono text-[11px] uppercase tracking-[0.16em] text-foreground">
-                  ApeTerm
+                  {t.compare.headers[0]}
                   <div className="mt-0.5 font-sans text-[11px] font-normal normal-case tracking-normal text-muted-foreground">
-                    free
+                    {t.compare.sub[0]}
                   </div>
                 </th>
                 <th className="w-32 py-3 text-center font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  Terminal seat
+                  {t.compare.headers[1]}
                   <div className="mt-0.5 font-sans text-[11px] font-normal normal-case tracking-normal">
-                    ~$30k/yr
+                    {t.compare.sub[1]}
                   </div>
                 </th>
                 <th className="w-32 py-3 text-center font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  Web dashboards
+                  {t.compare.headers[2]}
                   <div className="mt-0.5 font-sans text-[11px] font-normal normal-case tracking-normal">
-                    freemium
+                    {t.compare.sub[2]}
                   </div>
                 </th>
               </tr>
@@ -68,7 +67,7 @@ export function Compare() {
                   key={r.what}
                   className={cn("border-b border-border", i === rows.length - 1 && "border-b-0")}
                 >
-                  <td className="py-3.5 pr-4 text-foreground/90">{r.what}</td>
+                  <td className="py-3.5 pr-4 text-foreground/90">{t.compare.rows[i]}</td>
                   <td className="bg-card py-3.5 text-center">
                     <Mark yes={r.ape} />
                   </td>

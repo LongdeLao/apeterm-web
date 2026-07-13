@@ -3,6 +3,7 @@ import { Check, Copy } from "lucide-react";
 import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
 import { Reveal } from "./reveal";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 const INSTALL_CMD = "curl -fsSL https://github.com/LongdeLao/apeterm/raw/master/install.sh | bash";
 
@@ -15,6 +16,7 @@ function detectPlatform(): string | null {
 }
 
 export function CTA() {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const [platform, setPlatform] = useState<string | null>(null);
 
@@ -41,16 +43,14 @@ export function CTA() {
      |    ( ⊥ )`}
         </pre>
         <h2 className="mx-auto mt-8 max-w-2xl font-display text-4xl leading-[1.05] md:text-6xl">
-          The market opens at 9:30. So does your terminal.
+          {t.cta.title}
         </h2>
-        <p className="mx-auto mt-6 max-w-lg text-muted-foreground">
-          Install ApeTerm and spend the morning reading, not clicking.
-        </p>
+        <p className="mx-auto mt-6 max-w-lg text-muted-foreground">{t.cta.body}</p>
 
         <button
           onClick={copy}
           className="group mx-auto mt-10 inline-flex max-w-full cursor-pointer items-center gap-2 rounded-lg border border-border-strong bg-card px-4 py-3 text-left font-mono text-[13px] transition-colors hover:border-foreground/25"
-          aria-label="Copy install command"
+          aria-label={t.cta.copyLabel}
         >
           <span className="shrink-0 text-muted-foreground">$</span>
           <span className="truncate">
@@ -65,7 +65,7 @@ export function CTA() {
             )}
           >
             {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-            {copied ? "Copied" : "Copy"}
+            {copied ? t.cta.copied : t.cta.copy}
           </span>
         </button>
 
@@ -77,7 +77,8 @@ export function CTA() {
               ) : (
                 <LinuxIcon className="h-3.5 w-3.5" />
               )}
-              detected: <span className="text-foreground/80">{platform}</span> — supported
+              {t.cta.detected} <span className="text-foreground/80">{platform}</span> —{" "}
+              {t.cta.supported}
             </span>
           ) : (
             <>
@@ -95,7 +96,7 @@ export function CTA() {
             href="https://github.com/LongdeLao/apeterm"
             className="underline underline-offset-4 hover:text-foreground"
           >
-            Source
+            {t.cta.source}
           </a>
         </div>
       </Reveal>
