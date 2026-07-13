@@ -58,10 +58,16 @@ export const copy = {
     },
     openSource: {
       eyebrow: "04 · Open source",
-      title: "The source is the whole pitch.",
-      body: "No paywalls, no upgrade funnel, no telemetry phoning home unless you turn it on. Read the code, file an issue, or fork it and make it yours — it's a young project, so PRs matter more than praise.",
-      button: "Browse the repo",
+      title: "Built to stay out of your way.",
+      body: "ApeTerm is for people who want a serious market workspace without another SaaS layer sitting between them and the data.",
+      button: "Read the code",
       stats: ["stars", "forks", "open issues"],
+      principles: [
+        ["Local by default", "SQLite on your machine. No account wall, no sync setup, no hosted workspace to babysit."],
+        ["Fast enough to use daily", "Keyboard-first flows, lightweight views and a layout designed for repeated scanning."],
+        ["Hackable when you need more", "Bring your own data keys, extend the stack, or fork the repo when your workflow outgrows the defaults."],
+      ],
+      stackTitle: "What it's made of",
       stack: [
         ["Language", "Rust, ratatui + crossterm for the TUI"],
         ["Storage", "Local SQLite — nothing leaves your machine"],
@@ -217,10 +223,16 @@ export const copy = {
     },
     openSource: {
       eyebrow: "04 · Open Source",
-      title: "Der Quellcode ist das ganze Argument.",
-      body: "Keine Paywalls, kein Upgrade-Funnel, keine Telemetrie nach Hause, solange du sie nicht aktivierst. Lies den Code, melde Issues oder forke das Projekt — es ist jung, also zaehlen PRs mehr als Lob.",
-      button: "Repository durchsuchen",
+      title: "Gebaut, um dich nicht zu stoeren.",
+      body: "ApeTerm ist fuer Leute, die einen ernsthaften Markt-Workspace wollen, ohne dass noch eine SaaS-Schicht zwischen ihnen und den Daten sitzt.",
+      button: "Code lesen",
       stats: ["Stars", "Forks", "offene Issues"],
+      principles: [
+        ["Lokal als Standard", "SQLite auf deinem Rechner. Keine Account-Pflicht, kein Sync-Setup, kein gehosteter Workspace."],
+        ["Schnell genug fuer taegliche Nutzung", "Tastaturzentrierte Workflows, leichte Ansichten und ein Layout fuer wiederholtes Scannen."],
+        ["Erweiterbar, wenn du mehr brauchst", "Eigene Daten-Keys eintragen, den Stack erweitern oder das Repo forken, wenn dein Workflow mehr verlangt."],
+      ],
+      stackTitle: "Woraus es besteht",
       stack: [
         ["Sprache", "Rust, ratatui + crossterm für das TUI"],
         ["Speicher", "Lokales SQLite — nichts verlässt deinen Rechner"],

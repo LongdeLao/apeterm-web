@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
-import { Ticker } from "@/components/site/ticker";
 import { Features } from "@/components/site/features";
 import { Workflow } from "@/components/site/workflow";
 import { OpenSource } from "@/components/site/open-source";
@@ -20,7 +19,6 @@ function Index() {
       <SiteNav />
       <main>
         <Hero />
-        <Ticker />
         <Features />
         <Workflow />
         <OpenSource />
