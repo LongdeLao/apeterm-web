@@ -137,7 +137,7 @@ export function TerminalMock({ className }: { className?: string }) {
 
         <section className="col-span-5 border-r border-white/20 p-4">
           <PanelTitle title="Watchlist" tabs={["MAIN", "CRYPTO", "+"]} activeTitle />
-          <div className="mt-4 grid grid-cols-[76px_18px_80px_72px_62px_54px] gap-x-3 border-t border-white/28 pt-2 text-white/88">
+          <div className="mt-4 grid grid-cols-[76px_18px_80px_72px_34px_58px_26px_40px] gap-x-3 border-t border-white/28 pt-2 text-white/88">
             {rows.concat([
               { sym: "GOOGL", name: "Alphabet", px: 359.91, chg: -0.36 },
               { sym: "JPM", name: "JPMorgan", px: 334.47, chg: 0.12 },
@@ -146,13 +146,17 @@ export function TerminalMock({ className }: { className?: string }) {
               <div key={r.sym} className="contents">
                 <span>{r.sym}</span>
                 <span className="text-white/48">•</span>
-                <span className="tabular-nums">{r.px.toFixed(2)}</span>
-                <span className={r.chg >= 0 ? "text-[#62df86]" : "text-[#ff5f57]"}>
+                <span className="tabular-nums text-right">{r.px.toFixed(2)}</span>
+                <span className={cn("tabular-nums text-right", r.chg >= 0 ? "text-[#62df86]" : "text-[#ff5f57]")}>
                   {r.chg >= 0 ? "▲" : "▼"} {r.chg >= 0 ? "+" : ""}
                   {r.chg.toFixed(2)}%
                 </span>
-                <span className="text-white/58">VOL</span>
-                <span className="text-white/58">{Math.abs(r.chg * 12).toFixed(1)}M</span>
+                <span className="text-right text-white/58">VOL</span>
+                <span className="tabular-nums text-right text-white/58">{Math.abs(r.chg * 12).toFixed(1)}M</span>
+                <span className="text-right text-white/58">RV</span>
+                <span className="tabular-nums text-right text-white/58">
+                  {(0.4 + Math.abs(r.chg) / 6).toFixed(1)}x
+                </span>
               </div>
             ))}
           </div>
