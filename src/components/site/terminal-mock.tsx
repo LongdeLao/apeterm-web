@@ -77,7 +77,7 @@ export function TerminalMock({ className }: { className?: string }) {
         <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
         <div className="ml-4 flex h-5 w-56 items-center rounded bg-white/8 px-3 font-mono text-[10px] text-white/38">
-          Search sessions, agents, files...
+          {t.terminal.searchPlaceholder}
         </div>
         <div className="ml-auto font-mono text-[10px] tabular-nums text-white/48">
           +119 <span className="text-[#63e087]">+29</span> · {clock}
@@ -87,7 +87,7 @@ export function TerminalMock({ className }: { className?: string }) {
       <div className="grid min-h-[390px] grid-cols-12 font-mono text-[11px] leading-tight">
         <section className="col-span-5 grid grid-rows-2 border-r border-white/20">
           <div className="border-b border-white/20 p-4">
-            <PanelTitle title="Nachrichten" tabs={["ALL", "WATCHLIST", "MACRO", "REDDIT", "CRYPTO"]} />
+            <PanelTitle title={t.terminal.newsTitle} tabs={["ALL", "WATCHLIST", "MACRO", "RSS", "CRYPTO"]} />
             <div className="mt-3 grid grid-cols-[42px_42px_1fr] gap-x-3 text-white/84">
               {newsTimes.map((n, i) => (
                 <div key={i} className="contents">
@@ -96,12 +96,7 @@ export function TerminalMock({ className }: { className?: string }) {
                   <span className="truncate font-semibold">{t.terminal.news[i]}</span>
                 </div>
               ))}
-              {[
-                "Apple supplier checks point to a stronger cycle",
-                "Stock futures drift before the open",
-                "Congress tracker: new NVDA disclosures",
-                "Oil slips as OPEC+ weighs output increase",
-              ].map((item, i) => (
+              {t.terminal.extraNews.map((item, i) => (
                 <div key={item} className="contents">
                   <span className="text-white/48">{i + 1}h</span>
                   <span className="text-white/48">YF</span>
@@ -161,7 +156,7 @@ export function TerminalMock({ className }: { className?: string }) {
               </div>
             ))}
           </div>
-          <div className="mt-24 text-right text-[#bd5cff]">ↄ nachbörslich</div>
+          <div className="mt-24 text-right text-[#bd5cff]">ↄ {t.terminal.afterHours}</div>
         </section>
 
         <aside className="col-span-2 p-4">
@@ -169,15 +164,14 @@ export function TerminalMock({ className }: { className?: string }) {
             Agent <span className="ml-2 text-[#62df86]">●</span>{" "}
             <span className="text-white/48">openrouter/free</span>
           </div>
-          <div className="mt-5 font-semibold">Frag was, ich schau drauf.</div>
+          <div className="mt-5 font-semibold">{t.terminal.agentPrompt}</div>
           <ul className="mt-6 space-y-4 text-white/45">
-            <li>Add or remove from watchlist</li>
-            <li>Create a new watchlist</li>
-            <li>Open a stock's details</li>
-            <li>What's on my watchlists?</li>
+            {t.terminal.agentHints.map((hint) => (
+              <li key={hint}>{hint}</li>
+            ))}
           </ul>
           <div className="mt-32 border-t border-white/50 pt-2 text-white/58">
-            <span className="text-[#63a4ff]">›</span> frag einfach...
+            <span className="text-[#63a4ff]">›</span> {t.terminal.askPlaceholder}
             <br />
             ↵ send&nbsp;&nbsp; esc close
           </div>

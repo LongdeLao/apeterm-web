@@ -10,7 +10,6 @@ export const copy = {
       docs: "Docs",
       links: [
         ["#features", "Features"],
-        ["#terminal", "Terminal"],
         ["#workflow", "Workflow"],
         ["#open-source", "Open source"],
         ["#faq", "FAQ"],
@@ -27,50 +26,24 @@ export const copy = {
       repo: "Read the repo",
       tags: ["local-first", "open-source"],
     },
-    ticker: { label: "sample" },
+    ticker: { label: "live crypto" },
     features: {
-      eyebrow: "02 · Capabilities",
-      headingA: "Stocks, crypto, filings, news:",
-      headingB: "One calm window.",
-      words: ["prices", "filings", "news", "agents"],
-      cells: [
-        [
-          "Market data",
-          "Prices that keep up.",
-          "Streaming stock quotes and a live Binance feed for crypto, right in the terminal. Bring your own Finnhub or FMP key for deeper fundamentals.",
-        ],
-        [
-          "Institutional & insider",
-          "See who's actually buying.",
-          "13F holding changes, Form 4 insider trades and congressional disclosures, pulled straight from SEC EDGAR.",
-        ],
-        ["News", "Signal, not noise.", "Per-ticker feeds pulled from RSS wires and deduplicated across sources."],
-        [
-          "Agent",
-          "An assistant that can act.",
-          "Ask it to build a watchlist or open a ticker and it calls real tools against your app state — grounded in what's on screen, not guessing. Bring your own OpenRouter-compatible key.",
-        ],
-        [
-          "Watchlists",
-          "Named lists, stocks and crypto.",
-          "As many watchlists as you want, stored locally in a single config file — no account, nothing synced anywhere.",
-        ],
-        [
-          "Keyboard first",
-          "Vim motions, no mouse required.",
-          "j/k to move, h/v to split views, / to search, a to ask the agent, g to switch language.",
-        ],
+      eyebrow: "02 · What it does",
+      headingA: "Market context,",
+      headingB: "without the dashboard.",
+      body: "ApeTerm keeps the high-signal parts of investing close to your shell: prices, filings, news and an agent that can change your workspace.",
+      command: "apeterm watch NVDA BTC",
+      items: [
+        ["Markets", "Watch the tape.", "Stocks, ETFs and crypto watchlists in one fast local interface."],
+        ["Filings", "See who moved.", "13F changes, Form 4 trades and congressional disclosures from SEC EDGAR."],
+        ["News", "Read less noise.", "Per-ticker RSS feeds are grouped and deduped before they hit your screen."],
+        ["Agent", "Ask, then act.", "Open tickers, build lists and change views without leaving the keyboard."],
       ],
-      news: [
-        ["Fed holds rates steady, signals two cuts in 2026", "wire · 4m ago"],
-        ["NVIDIA reports record data-center revenue", "wire · 22m ago"],
+      metrics: [
+        ["0 accounts", "Local SQLite storage"],
+        ["4 data lanes", "Quotes, filings, news, agent"],
+        ["1 command", "Install and start from the shell"],
       ],
-      agent: [
-        '› add UBER, DASH to a new "delivery" list',
-        "adding UBER, DASH · tool_call",
-        'Done — created "delivery" with 2 symbols.',
-      ],
-      keys: ["j/k move", "h/v split", "a agent", "/ search", ", settings", "g locale"],
     },
     workflow: {
       eyebrow: "03 · Workflow",
@@ -137,7 +110,7 @@ export const copy = {
     footer: {
       body: "An open-source investment terminal, built in Rust for people who like building things.",
       cols: [
-        ["Product", "Features", "Terminal", "Install"],
+        ["Product", "Features", "Workflow", "Install"],
         ["Source", "GitHub", "Issues", "Releases"],
         ["Resources", "Docs", "FAQ"],
       ],
@@ -146,6 +119,7 @@ export const copy = {
     terminal: {
       panels: "Panels",
       labels: ["watchlist", "news", "sec", "agent"],
+      searchPlaceholder: "Search symbols, filings, news...",
       keys: "Keys",
       keyRows: ["a — ask agent", "/ — search", "h/v — split", "j/k — move"],
       hint: "this demo is live — click a panel, or hover and press 1 / 2 / 3 / a",
@@ -153,12 +127,27 @@ export const copy = {
       columns: ["Sym", "Name", "Last", "Chg"],
       stream: "streaming · yfinance + binance ws",
       newsTitle: "News — all tickers",
+      extraNews: [
+        "Apple supplier checks point to a stronger cycle",
+        "Stock futures drift before the open",
+        "Congress tracker: new NVDA disclosures",
+        "Oil slips as OPEC+ weighs output increase",
+      ],
       ago: "ago",
       dedupe: "deduplicated across RSS wires",
       secTitle: "SEC EDGAR — recent filings",
       secColumns: ["Form", "Action", "Sym", "Size"],
       secNote: "13F · Form 4 · congressional disclosures — free, no key needed",
       agentTitle: "Agent — grounded in screen state",
+      afterHours: "after-hours",
+      agentPrompt: "Ask a question. I’ll check the workspace.",
+      agentHints: [
+        "Add or remove from a watchlist",
+        "Create a new watchlist",
+        "Open a ticker's details",
+        "Summarize current holdings",
+      ],
+      askPlaceholder: "ask anything...",
       actions: ["Buy", "Sell", "Cut", "Buy", "New"],
       news: [
         "Fed holds rates steady, signals two cuts in 2026",
@@ -180,7 +169,6 @@ export const copy = {
       docs: "Docs",
       links: [
         ["#features", "Funktionen"],
-        ["#terminal", "Terminal"],
         ["#workflow", "Workflow"],
         ["#open-source", "Source"],
         ["#faq", "FAQ"],
@@ -197,30 +185,24 @@ export const copy = {
       repo: "Repository ansehen",
       tags: ["local-first", "open-source"],
     },
-    ticker: { label: "beispiel" },
+    ticker: { label: "live krypto" },
     features: {
-      eyebrow: "02 · Funktionen",
-      headingA: "Aktien, Krypto, Filings, News:",
-      headingB: "Alles in einem ruhigen Fenster.",
-      words: ["Kurse", "Meldungen", "News", "Agenten"],
-      cells: [
-        ["Marktdaten", "Kurse, die Schritt halten.", "Streaming-Aktienkurse und ein Live-Binance-Feed für Krypto direkt im Terminal. Für tiefere Fundamentaldaten kannst du eigene Finnhub- oder FMP-Keys eintragen."],
-        ["Institutionelle & Insider", "Sieh, wer wirklich kauft.", "13F-Positionsveränderungen, Form-4-Insidertrades und Kongressmeldungen direkt aus SEC EDGAR."],
-        ["News", "Signal statt Rauschen.", "Tickerbezogene Feeds aus RSS-Quellen, quellenübergreifend dedupliziert."],
-        ["Agent", "Ein Assistent, der handeln kann.", "Bitte ihn, eine Watchlist zu bauen oder einen Ticker zu öffnen. Er nutzt echte Tools gegen deinen App-Zustand — mit Kontext vom Bildschirm, nicht geraten. Bring deinen eigenen OpenRouter-kompatiblen Key mit."],
-        ["Watchlists", "Benannte Listen, Aktien und Krypto.", "Beliebig viele Watchlists, lokal in einer einzelnen Konfigurationsdatei gespeichert — kein Account, keine Synchronisierung."],
-        ["Tastatur zuerst", "Vim-Bewegungen, keine Maus nötig.", "j/k zum Bewegen, h/v zum Teilen von Ansichten, / für Suche, a für den Agenten, g zum Sprachwechsel."],
+      eyebrow: "02 · Was es macht",
+      headingA: "Marktkontext,",
+      headingB: "ohne Dashboard.",
+      body: "ApeTerm hält die wichtigen Investment-Signale nah an deiner Shell: Kurse, Filings, News und einen Agenten, der deinen Workspace ändern kann.",
+      command: "apeterm watch NVDA BTC",
+      items: [
+        ["Märkte", "Tape im Blick.", "Aktien-, ETF- und Krypto-Watchlists in einer schnellen lokalen Oberfläche."],
+        ["Filings", "Sieh, wer bewegt.", "13F-Änderungen, Form-4-Trades und Kongressmeldungen aus SEC EDGAR."],
+        ["News", "Weniger Rauschen.", "Tickerbezogene RSS-Feeds werden gruppiert und dedupliziert, bevor sie auf deinem Bildschirm landen."],
+        ["Agent", "Fragen, dann handeln.", "Ticker öffnen, Listen bauen und Ansichten ändern, ohne die Tastatur zu verlassen."],
       ],
-      news: [
-        ["Fed hält Zinsen stabil und signalisiert zwei Senkungen 2026", "wire · vor 4 min"],
-        ["NVIDIA meldet Rekordumsatz im Datencenter-Geschäft", "wire · vor 22 min"],
+      metrics: [
+        ["0 Accounts", "Lokaler SQLite-Speicher"],
+        ["4 Datenwege", "Kurse, Filings, News, Agent"],
+        ["1 Befehl", "Installieren und aus der Shell starten"],
       ],
-      agent: [
-        '› UBER, DASH zu neuer Liste "delivery" hinzufügen',
-        "füge UBER, DASH hinzu · tool_call",
-        'Fertig — "delivery" mit 2 Symbolen erstellt.',
-      ],
-      keys: ["j/k bewegen", "h/v teilen", "a Agent", "/ Suche", ", Einstellungen", "g Sprache"],
     },
     workflow: {
       eyebrow: "03 · Workflow",
@@ -287,7 +269,7 @@ export const copy = {
     footer: {
       body: "Ein Open-Source-Investment-Terminal, gebaut in Rust für Menschen, die gern Dinge bauen.",
       cols: [
-        ["Produkt", "Funktionen", "Terminal", "Installieren"],
+        ["Produkt", "Funktionen", "Workflow", "Installieren"],
         ["Quelle", "GitHub", "Issues", "Releases"],
         ["Ressourcen", "Doku", "FAQ"],
       ],
@@ -296,6 +278,7 @@ export const copy = {
     terminal: {
       panels: "Panels",
       labels: ["Watchlist", "News", "SEC", "Agent"],
+      searchPlaceholder: "Symbole, Filings, News suchen...",
       keys: "Tasten",
       keyRows: ["a — Agent fragen", "/ — Suche", "h/v — teilen", "j/k — bewegen"],
       hint: "Diese Demo ist live — Panel anklicken oder hovern und 1 / 2 / 3 / a drücken",
@@ -303,12 +286,27 @@ export const copy = {
       columns: ["Sym", "Name", "Letzter", "Änd."],
       stream: "streaming · yfinance + binance ws",
       newsTitle: "News — alle Ticker",
+      extraNews: [
+        "Apple-Zuliefererchecks deuten auf starken Zyklus",
+        "US-Futures bewegen sich vor der Eröffnung kaum",
+        "Kongress-Tracker: neue NVDA-Meldungen",
+        "Öl fällt, während OPEC+ höhere Förderung prüft",
+      ],
       ago: "",
       dedupe: "über RSS-Quellen dedupliziert",
       secTitle: "SEC EDGAR — aktuelle Meldungen",
       secColumns: ["Form", "Aktion", "Sym", "Größe"],
       secNote: "13F · Form 4 · Kongressmeldungen — kostenlos, kein Key nötig",
       agentTitle: "Agent — im Bildschirmzustand verankert",
+      afterHours: "nachbörslich",
+      agentPrompt: "Frag etwas. Ich prüfe den Workspace.",
+      agentHints: [
+        "Zur Watchlist hinzufügen oder entfernen",
+        "Eine neue Watchlist erstellen",
+        "Ticker-Details öffnen",
+        "Aktuelle Holdings zusammenfassen",
+      ],
+      askPlaceholder: "frag einfach...",
       actions: ["Kauf", "Verkauf", "Reduziert", "Kauf", "Neu"],
       news: [
         "Fed hält Zinsen stabil und signalisiert zwei Senkungen 2026",

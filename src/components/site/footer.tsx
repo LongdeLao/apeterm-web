@@ -7,7 +7,7 @@ export function SiteFooter() {
       h: t.footer.cols[0][0],
       links: [
         { l: t.footer.cols[0][1], href: "#features" },
-        { l: t.footer.cols[0][2], href: "#terminal" },
+        { l: t.footer.cols[0][2], href: "#workflow" },
         { l: t.footer.cols[0][3], href: "#download" },
       ],
     },
