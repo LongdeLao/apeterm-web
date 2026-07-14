@@ -39,9 +39,7 @@ export function SiteFooter() {
             />
             <span className="font-mono text-[15px]">apeterm</span>
           </div>
-          <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-            {t.footer.body}
-          </p>
+          <p className="mt-4 max-w-xs text-sm text-muted-foreground">{t.footer.body}</p>
         </div>
         {cols.map((c) => (
           <div key={c.h}>
@@ -66,9 +64,7 @@ export function SiteFooter() {
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground md:flex-row">
           <div>© 2026 ApeTerm</div>
-          <div className="font-mono">
-            {t.footer.legal}
-          </div>
+          <div className="font-mono">{t.footer.legal}</div>
         </div>
       </div>
     </footer>

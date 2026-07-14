@@ -82,7 +82,10 @@ export function Ticker() {
 
   const track = [...rows, ...rows];
   return (
-    <div data-live-ticker className="group relative overflow-hidden border-y border-border bg-surface/60">
+    <div
+      data-live-ticker
+      className="group relative overflow-hidden border-y border-border bg-surface/60"
+    >
       <div className="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center gap-2 bg-gradient-to-r from-background via-background/95 to-transparent px-5 py-3">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-[oklch(0.6_0.14_145)]" />
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -98,9 +101,7 @@ export function Ticker() {
             <span
               className={cn(
                 "tabular-nums",
-                item.change >= 0
-                  ? "text-[oklch(0.55_0.14_145)]"
-                  : "text-[oklch(0.58_0.18_25)]",
+                item.change >= 0 ? "text-[oklch(0.55_0.14_145)]" : "text-[oklch(0.58_0.18_25)]",
               )}
             >
               {item.change >= 0 ? "+" : ""}
