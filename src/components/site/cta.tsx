@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
+import { AppleIcon, LinuxIcon, WindowsIcon } from "@/components/icons/platform";
 import { Reveal } from "./reveal";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
 const INSTALL_CMD = "curl -fsSL https://github.com/LongdeLao/apeterm/raw/master/install.sh | bash";
+const WINDOWS_DOWNLOAD_URL =
+  "https://github.com/LongdeLao/apeterm/releases/latest/download/apeterm-x86_64-pc-windows-msvc.zip";
 
 function detectPlatform(): string | null {
   if (typeof navigator === "undefined") return null;
   const ua = navigator.userAgent;
   if (/Mac/i.test(ua)) return "macOS (Apple Silicon)";
+  if (/Windows/i.test(ua)) return "Windows (x86_64)";
   if (/Linux/i.test(ua) && !/Android/i.test(ua)) return "Linux (x86_64)";
   return null;
 }
@@ -19,6 +22,7 @@ export function CTA() {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const [platform, setPlatform] = useState<string | null>(null);
+  const displayedCommand = platform?.startsWith("Windows") ? WINDOWS_DOWNLOAD_URL : INSTALL_CMD;
 
   useEffect(() => {
     setPlatform(detectPlatform());
@@ -26,7 +30,7 @@ export function CTA() {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(INSTALL_CMD);
+      await navigator.clipboard.writeText(displayedCommand);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -53,9 +57,7 @@ export function CTA() {
           aria-label={t.cta.copyLabel}
         >
           <span className="shrink-0 text-muted-foreground">$</span>
-          <span className="truncate">
-            curl -fsSL github.com/LongdeLao/apeterm/raw/master/install.sh | bash
-          </span>
+          <span className="truncate">{displayedCommand.replace("https://", "")}</span>
           <span
             className={cn(
               "ml-1 inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] transition-colors",
@@ -74,6 +76,8 @@ export function CTA() {
             <span className="inline-flex items-center gap-1.5">
               {platform.startsWith("mac") ? (
                 <AppleIcon className="h-3.5 w-3.5" />
+              ) : platform.startsWith("Windows") ? (
+                <WindowsIcon className="h-3.5 w-3.5" />
               ) : (
                 <LinuxIcon className="h-3.5 w-3.5" />
               )}
@@ -88,6 +92,10 @@ export function CTA() {
               <span className="text-border">·</span>
               <span className="inline-flex items-center gap-1.5">
                 <LinuxIcon className="h-3.5 w-3.5" /> Linux · x86_64
+              </span>
+              <span className="text-border">·</span>
+              <span className="inline-flex items-center gap-1.5">
+                <WindowsIcon className="h-3.5 w-3.5" /> Windows · x86_64
               </span>
             </>
           )}

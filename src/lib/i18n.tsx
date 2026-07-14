@@ -34,10 +34,26 @@ export const copy = {
       body: "ApeTerm keeps the high-signal parts of investing close to your shell: prices, filings, news and an agent that can change your workspace.",
       command: "apeterm watch NVDA BTC",
       items: [
-        ["Markets", "Watch the tape.", "Stocks, ETFs and crypto watchlists in one fast local interface."],
-        ["Filings", "See who moved.", "13F changes, Form 4 trades and congressional disclosures from SEC EDGAR."],
-        ["News", "Read less noise.", "Per-ticker RSS feeds are grouped and deduped before they hit your screen."],
-        ["Agent", "Ask, then act.", "Open tickers, build lists and change views without leaving the keyboard."],
+        [
+          "Markets",
+          "Watch the tape.",
+          "Stocks, ETFs and crypto watchlists in one fast local interface.",
+        ],
+        [
+          "Filings",
+          "See who moved.",
+          "13F changes, Form 4 trades and congressional disclosures from SEC EDGAR.",
+        ],
+        [
+          "News",
+          "Read less noise.",
+          "Per-ticker RSS feeds are grouped and deduped before they hit your screen.",
+        ],
+        [
+          "Agent",
+          "Ask, then act.",
+          "Open tickers, build lists and change views without leaving the keyboard.",
+        ],
       ],
       metrics: [
         ["0 accounts", "Local SQLite storage"],
@@ -50,10 +66,22 @@ export const copy = {
       title: "From install to insight in four steps.",
       body: "ApeTerm is built for the way you already work — a shell, a keyboard, no dashboards to learn.",
       steps: [
-        ["Install in one line.", "Puts apeterm on your PATH and sets up its local SQLite database and Python runtime. No accounts, no signup."],
-        ["Open the dashboard.", "Press w in the watchlist view to add a ticker, h/v to split views, j/k to move — no mouse needed."],
-        ["Press a, and just ask.", "The agent reads your current watchlists and screen state, then calls real tools to make the change."],
-        ["Bring your own keys.", "Plug in Finnhub, FMP or an OpenRouter model — or run entirely on the free SEC EDGAR fallback."],
+        [
+          "Install in one line.",
+          "Puts apeterm on your PATH and sets up its local SQLite database and Python runtime. No accounts, no signup.",
+        ],
+        [
+          "Open the dashboard.",
+          "Press w in the watchlist view to add a ticker, h/v to split views, j/k to move — no mouse needed.",
+        ],
+        [
+          "Press a, and just ask.",
+          "The agent reads your current watchlists and screen state, then calls real tools to make the change.",
+        ],
+        [
+          "Bring your own keys.",
+          "Plug in Finnhub, FMP or an OpenRouter model — or run entirely on the free SEC EDGAR fallback.",
+        ],
       ],
     },
     openSource: {
@@ -63,9 +91,18 @@ export const copy = {
       button: "Read the code",
       stats: ["stars", "forks", "open issues"],
       principles: [
-        ["Local by default", "SQLite on your machine. No account wall, no sync setup, no hosted workspace to babysit."],
-        ["Fast enough to use daily", "Keyboard-first flows, lightweight views and a layout designed for repeated scanning."],
-        ["Hackable when you need more", "Bring your own data keys, extend the stack, or fork the repo when your workflow outgrows the defaults."],
+        [
+          "Local by default",
+          "SQLite on your machine. No account wall, no sync setup, no hosted workspace to babysit.",
+        ],
+        [
+          "Fast enough to use daily",
+          "Keyboard-first flows, lightweight views and a layout designed for repeated scanning.",
+        ],
+        [
+          "Hackable when you need more",
+          "Bring your own data keys, extend the stack, or fork the repo when your workflow outgrows the defaults.",
+        ],
       ],
       stackTitle: "What it's made of",
       stack: [
@@ -96,11 +133,26 @@ export const copy = {
       eyebrow: "06 · Questions",
       title: "Fewer questions than you'd expect.",
       items: [
-        ["Is ApeTerm really free?", "Yes — free and source-available on GitHub, no paid tier, no locked features. Optional data providers (Finnhub, Financial Modeling Prep) and the AI agent have their own free/paid tiers if you choose to plug in a key."],
-        ["Where does market data come from?", "Stock quotes stream from yfinance and crypto from Binance's public websocket. Filing and holdings data comes from SEC EDGAR by default. Add a Finnhub or FMP key in settings for richer fundamentals."],
-        ["Does it track me?", "No telemetry and no analytics by default. Everything lives in a local SQLite database and config file. The only network calls are to the data providers and, if you enable it, the LLM provider you configure."],
-        ["Is this investment advice?", "No. ApeTerm shows public filings, prices and news. What you do with it is on you."],
-        ["Which platforms are supported?", "Prebuilt binaries for macOS (Apple Silicon) and Linux (x86_64). Other platforms need to build from source with Cargo."],
+        [
+          "Is ApeTerm really free?",
+          "Yes — free and source-available on GitHub, no paid tier, no locked features. Optional data providers (Finnhub, Financial Modeling Prep) and the AI agent have their own free/paid tiers if you choose to plug in a key.",
+        ],
+        [
+          "Where does market data come from?",
+          "Stock quotes stream from yfinance and crypto from Binance's public websocket. Filing and holdings data comes from SEC EDGAR by default. Add a Finnhub or FMP key in settings for richer fundamentals.",
+        ],
+        [
+          "Does it track me?",
+          "No telemetry and no analytics by default. Everything lives in a local SQLite database and config file. The only network calls are to the data providers and, if you enable it, the LLM provider you configure.",
+        ],
+        [
+          "Is this investment advice?",
+          "No. ApeTerm shows public filings, prices and news. What you do with it is on you.",
+        ],
+        [
+          "Which platforms are supported?",
+          "Prebuilt binaries for macOS (Apple Silicon), Linux (x86_64), and Windows (x86_64). Other platforms need to build from source with Cargo.",
+        ],
       ],
     },
     cta: {
@@ -199,10 +251,26 @@ export const copy = {
       body: "ApeTerm hält die wichtigen Investment-Signale nah an deiner Shell: Kurse, Filings, News und einen Agenten, der deinen Workspace ändern kann.",
       command: "apeterm watch NVDA BTC",
       items: [
-        ["Märkte", "Tape im Blick.", "Aktien-, ETF- und Krypto-Watchlists in einer schnellen lokalen Oberfläche."],
-        ["Filings", "Sieh, wer bewegt.", "13F-Änderungen, Form-4-Trades und Kongressmeldungen aus SEC EDGAR."],
-        ["News", "Weniger Rauschen.", "Tickerbezogene RSS-Feeds werden gruppiert und dedupliziert, bevor sie auf deinem Bildschirm landen."],
-        ["Agent", "Fragen, dann handeln.", "Ticker öffnen, Listen bauen und Ansichten ändern, ohne die Tastatur zu verlassen."],
+        [
+          "Märkte",
+          "Tape im Blick.",
+          "Aktien-, ETF- und Krypto-Watchlists in einer schnellen lokalen Oberfläche.",
+        ],
+        [
+          "Filings",
+          "Sieh, wer bewegt.",
+          "13F-Änderungen, Form-4-Trades und Kongressmeldungen aus SEC EDGAR.",
+        ],
+        [
+          "News",
+          "Weniger Rauschen.",
+          "Tickerbezogene RSS-Feeds werden gruppiert und dedupliziert, bevor sie auf deinem Bildschirm landen.",
+        ],
+        [
+          "Agent",
+          "Fragen, dann handeln.",
+          "Ticker öffnen, Listen bauen und Ansichten ändern, ohne die Tastatur zu verlassen.",
+        ],
       ],
       metrics: [
         ["0 Accounts", "Lokaler SQLite-Speicher"],
@@ -215,10 +283,22 @@ export const copy = {
       title: "Von Installation zu Insight in vier Schritten.",
       body: "ApeTerm ist für deine vorhandene Arbeitsweise gebaut — Shell, Tastatur, keine neuen Dashboards.",
       steps: [
-        ["In einer Zeile installieren.", "Legt apeterm auf deinen PATH und richtet die lokale SQLite-Datenbank sowie die Python-Laufzeit ein. Keine Accounts, keine Registrierung."],
-        ["Dashboard öffnen.", "Drücke w in der Watchlist, um einen Ticker hinzuzufügen, h/v zum Teilen, j/k zum Bewegen — keine Maus nötig."],
-        ["a drücken und fragen.", "Der Agent liest deine Watchlists und den Bildschirmzustand und ruft echte Tools auf, um die Änderung umzusetzen."],
-        ["Eigene Keys nutzen.", "Trage Finnhub, FMP oder ein OpenRouter-Modell ein — oder nutze komplett den freien SEC-EDGAR-Fallback."],
+        [
+          "In einer Zeile installieren.",
+          "Legt apeterm auf deinen PATH und richtet die lokale SQLite-Datenbank sowie die Python-Laufzeit ein. Keine Accounts, keine Registrierung.",
+        ],
+        [
+          "Dashboard öffnen.",
+          "Drücke w in der Watchlist, um einen Ticker hinzuzufügen, h/v zum Teilen, j/k zum Bewegen — keine Maus nötig.",
+        ],
+        [
+          "a drücken und fragen.",
+          "Der Agent liest deine Watchlists und den Bildschirmzustand und ruft echte Tools auf, um die Änderung umzusetzen.",
+        ],
+        [
+          "Eigene Keys nutzen.",
+          "Trage Finnhub, FMP oder ein OpenRouter-Modell ein — oder nutze komplett den freien SEC-EDGAR-Fallback.",
+        ],
       ],
     },
     openSource: {
@@ -228,9 +308,18 @@ export const copy = {
       button: "Code lesen",
       stats: ["Stars", "Forks", "offene Issues"],
       principles: [
-        ["Lokal als Standard", "SQLite auf deinem Rechner. Keine Account-Pflicht, kein Sync-Setup, kein gehosteter Workspace."],
-        ["Schnell genug fuer taegliche Nutzung", "Tastaturzentrierte Workflows, leichte Ansichten und ein Layout fuer wiederholtes Scannen."],
-        ["Erweiterbar, wenn du mehr brauchst", "Eigene Daten-Keys eintragen, den Stack erweitern oder das Repo forken, wenn dein Workflow mehr verlangt."],
+        [
+          "Lokal als Standard",
+          "SQLite auf deinem Rechner. Keine Account-Pflicht, kein Sync-Setup, kein gehosteter Workspace.",
+        ],
+        [
+          "Schnell genug fuer taegliche Nutzung",
+          "Tastaturzentrierte Workflows, leichte Ansichten und ein Layout fuer wiederholtes Scannen.",
+        ],
+        [
+          "Erweiterbar, wenn du mehr brauchst",
+          "Eigene Daten-Keys eintragen, den Stack erweitern oder das Repo forken, wenn dein Workflow mehr verlangt.",
+        ],
       ],
       stackTitle: "Woraus es besteht",
       stack: [
@@ -261,11 +350,26 @@ export const copy = {
       eyebrow: "06 · Fragen",
       title: "Weniger Fragen, als du erwartest.",
       items: [
-        ["Ist ApeTerm wirklich kostenlos?", "Ja — kostenlos und mit Quellcode auf GitHub, ohne Paid Tier und ohne gesperrte Features. Optionale Datenanbieter (Finnhub, Financial Modeling Prep) und der AI-Agent haben eigene kostenlose oder bezahlte Tarife, wenn du einen Key einträgst."],
-        ["Woher kommen die Marktdaten?", "Aktienkurse streamen von yfinance, Krypto von Binances öffentlichem Websocket. Filing- und Holdings-Daten kommen standardmäßig aus SEC EDGAR. Für reichere Fundamentaldaten kannst du Finnhub oder FMP in den Einstellungen eintragen."],
-        ["Trackt es mich?", "Keine Telemetrie und keine Analytics standardmäßig. Alles liegt in einer lokalen SQLite-Datenbank und Konfigurationsdatei. Netzwerkaufrufe gehen nur an Datenanbieter und, wenn aktiviert, an deinen LLM-Anbieter."],
-        ["Ist das Anlageberatung?", "Nein. ApeTerm zeigt öffentliche Filings, Kurse und News. Was du damit machst, liegt bei dir."],
-        ["Welche Plattformen werden unterstützt?", "Vorgebaute Binaries für macOS (Apple Silicon) und Linux (x86_64). Andere Plattformen müssen mit Cargo aus dem Quellcode gebaut werden."],
+        [
+          "Ist ApeTerm wirklich kostenlos?",
+          "Ja — kostenlos und mit Quellcode auf GitHub, ohne Paid Tier und ohne gesperrte Features. Optionale Datenanbieter (Finnhub, Financial Modeling Prep) und der AI-Agent haben eigene kostenlose oder bezahlte Tarife, wenn du einen Key einträgst.",
+        ],
+        [
+          "Woher kommen die Marktdaten?",
+          "Aktienkurse streamen von yfinance, Krypto von Binances öffentlichem Websocket. Filing- und Holdings-Daten kommen standardmäßig aus SEC EDGAR. Für reichere Fundamentaldaten kannst du Finnhub oder FMP in den Einstellungen eintragen.",
+        ],
+        [
+          "Trackt es mich?",
+          "Keine Telemetrie und keine Analytics standardmäßig. Alles liegt in einer lokalen SQLite-Datenbank und Konfigurationsdatei. Netzwerkaufrufe gehen nur an Datenanbieter und, wenn aktiviert, an deinen LLM-Anbieter.",
+        ],
+        [
+          "Ist das Anlageberatung?",
+          "Nein. ApeTerm zeigt öffentliche Filings, Kurse und News. Was du damit machst, liegt bei dir.",
+        ],
+        [
+          "Welche Plattformen werden unterstützt?",
+          "Vorgebaute Binaries für macOS (Apple Silicon), Linux (x86_64) und Windows (x86_64). Andere Plattformen müssen mit Cargo aus dem Quellcode gebaut werden.",
+        ],
       ],
     },
     cta: {

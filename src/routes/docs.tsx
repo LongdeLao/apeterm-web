@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, ChevronRight } from "lucide-react";
-import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
+import { AppleIcon, LinuxIcon, WindowsIcon } from "@/components/icons/platform";
 
 export const Route = createFileRoute("/docs")({
   component: DocsPage,
@@ -81,8 +81,8 @@ function DocsPage() {
             <span className="italic text-muted-foreground/80">Learn the keys.</span>
           </h1>
           <p className="mt-8 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-            ApeTerm is a terminal app, not a web dashboard. There's no account. Everything below
-            is what you'll actually type or press.
+            ApeTerm is a terminal app, not a web dashboard. There's no account. Everything below is
+            what you'll actually type or press.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -92,19 +92,26 @@ function DocsPage() {
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
               <LinuxIcon className="h-3 w-3" /> Linux · x86_64
             </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
+              <WindowsIcon className="h-3 w-3" /> Windows · x86_64
+            </span>
           </div>
 
           <Divider />
 
           <Section id="install" number="01" title="Install">
             <p>
-              One script puts <Mono>apeterm</Mono> on your <Mono>PATH</Mono>, installs the
-              runtime under <Mono>~/.local/share/apeterm</Mono>, and sets up the private Python
-              runtime used for streaming quotes.
+              One script puts <Mono>apeterm</Mono> on your <Mono>PATH</Mono>, installs the runtime
+              under <Mono>~/.local/share/apeterm</Mono>, and sets up the private Python runtime used
+              for streaming quotes.
             </p>
             <Code>
               curl -fsSL https://github.com/LongdeLao/apeterm/raw/master/install.sh | bash
             </Code>
+            <p className="mt-5">
+              On Windows, download <Mono>apeterm-x86_64-pc-windows-msvc.zip</Mono> from GitHub
+              Releases and put <Mono>apeterm.exe</Mono> somewhere on your <Mono>PATH</Mono>.
+            </p>
           </Section>
 
           <Section id="first-run" number="02" title="First run">
@@ -211,7 +218,7 @@ function DocsPage() {
               <div>
                 <div className="text-foreground">Windows?</div>
                 <p className="mt-1.5 text-muted-foreground">
-                  Not yet. WSL works in the meantime.
+                  Yes. Download the Windows x86_64 zip from GitHub Releases.
                 </p>
               </div>
             </div>

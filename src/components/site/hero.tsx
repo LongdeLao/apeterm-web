@@ -3,7 +3,7 @@ import { ArrowUpRight, Github } from "lucide-react";
 import { Lamp } from "@/components/aceternity/lamp";
 import { Spotlight } from "@/components/aceternity/spotlight";
 import { TextGenerate } from "@/components/aceternity/text-generate";
-import { AppleIcon, LinuxIcon } from "@/components/icons/platform";
+import { AppleIcon, LinuxIcon, WindowsIcon } from "@/components/icons/platform";
 import { useI18n } from "@/lib/i18n";
 import { TerminalMock } from "./terminal-mock";
 
@@ -78,6 +78,9 @@ export function Hero() {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
               <LinuxIcon className="h-3 w-3" /> Linux · x86_64
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
+              <WindowsIcon className="h-3 w-3" /> Windows · x86_64
             </span>
             <span className="rounded-full border border-border/70 bg-white/65 px-2.5 py-1 font-mono">
               {t.hero.tags[0]}
