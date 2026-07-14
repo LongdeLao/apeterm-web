@@ -40,7 +40,7 @@ function useLiveCryptoTicker() {
       if (!active) return;
       setRows(
         data
-          .map((item) => {
+          .map((item): TickerRow | null => {
             const match = markets.find(([symbol]) => symbol === item.symbol);
             if (!match) return null;
             return {
