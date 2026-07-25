@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "NITRO_PRESET=vercel vite build",
+    "build:sites": "NITRO_PRESET=cloudflare_module vite build && node scripts/prepare-sites-build.mjs",
     "build:dev": "NITRO_PRESET=vercel vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

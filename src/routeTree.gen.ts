@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SalaryRoiRouteImport } from './routes/salary-roi'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -29,6 +30,11 @@ const DocsRoute = DocsRouteImport.update({
   path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRoute
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app': typeof AppRoute
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRoute
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/docs' | '/salary-roi' | '/sitemap.xml'
+  fullPaths: '/' | '/app' | '/docs' | '/salary-roi' | '/sitemap.xml'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/docs' | '/salary-roi' | '/sitemap.xml'
-  id: '__root__' | '/' | '/docs' | '/salary-roi' | '/sitemap.xml'
+  to: '/' | '/app' | '/docs' | '/salary-roi' | '/sitemap.xml'
+  id: '__root__' | '/' | '/app' | '/docs' | '/salary-roi' | '/sitemap.xml'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRoute
   DocsRoute: typeof DocsRoute
   SalaryRoiRoute: typeof SalaryRoiRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRoute,
   DocsRoute: DocsRoute,
   SalaryRoiRoute: SalaryRoiRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
