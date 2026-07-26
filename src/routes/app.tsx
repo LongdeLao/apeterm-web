@@ -263,7 +263,7 @@ function Window({
   );
 }
 
-function ApeTermWeb() {
+export function ApeTermWeb() {
   const [focused, setFocused] = useState<Panel>("news");
   const [newsTab, setNewsTab] = useState(0);
   const [watchTab, setWatchTab] = useState(0);
