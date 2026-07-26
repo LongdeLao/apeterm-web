@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ApeTermWeb } from "./app";
+import { AuthenticatedApeTerm } from "./app";
 
 export const Route = createFileRoute("/")({
-  component: ApeTermWeb,
+  component: AuthenticatedApeTerm,
 });

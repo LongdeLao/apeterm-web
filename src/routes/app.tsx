@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { AuthGate } from "@/components/auth-gate";
+import { useApeAuth } from "@/lib/auth-context";
 import {
   InstrumentChart,
   chartTimeframes,
@@ -12,7 +14,7 @@ export const Route = createFileRoute("/app")({
   head: () => ({
     meta: [{ title: "ApeTerm" }, { name: "description", content: "ApeTerm in your browser." }],
   }),
-  component: ApeTermWeb,
+  component: AuthenticatedApeTerm,
 });
 
 type Panel = "news" | "watchlist" | "sec" | "notes";
@@ -283,6 +285,9 @@ function Window({
 }
 
 export function ApeTermWeb() {
+  const auth = useApeAuth();
+  const authenticatedSymbols = auth?.initialSymbols;
+  const saveWatchlist = auth?.saveWatchlist;
   const [focused, setFocused] = useState<Panel>("news");
   const [newsTab, setNewsTab] = useState(0);
   const [watchTab, setWatchTab] = useState(0);
@@ -298,7 +303,7 @@ export function ApeTermWeb() {
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentError, setAgentError] = useState("");
-  const [stockOrder, setStockOrder] = useState(defaultStockOrder);
+  const [stockOrder, setStockOrder] = useState(auth?.initialSymbols ?? defaultStockOrder);
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
   const [spotlightRow, setSpotlightRow] = useState(0);
   const [stockStream, setStockStream] = useState<Record<string, Quote>>({});
@@ -322,12 +327,18 @@ export function ApeTermWeb() {
   });
 
   useEffect(() => {
+    if (authenticatedSymbols) {
+      setStockOrder(authenticatedSymbols);
+      setWatchlistLoaded(true);
+      return;
+    }
     try {
       const saved = JSON.parse(window.localStorage.getItem(watchlistStorageKey) ?? "null");
       if (Array.isArray(saved)) {
         const symbols = saved
-          .filter((symbol): symbol is string =>
-            typeof symbol === "string" && /^[A-Z]{1,6}(?:-[A-Z])?$/.test(symbol),
+          .filter(
+            (symbol): symbol is string =>
+              typeof symbol === "string" && /^[A-Z]{1,6}(?:-[A-Z])?$/.test(symbol),
           )
           .filter((symbol, index, all) => all.indexOf(symbol) === index)
           .slice(0, 25);
@@ -338,13 +349,14 @@ export function ApeTermWeb() {
     } finally {
       setWatchlistLoaded(true);
     }
-  }, []);
+  }, [authenticatedSymbols]);
 
   useEffect(() => {
     if (watchlistLoaded) {
       window.localStorage.setItem(watchlistStorageKey, JSON.stringify(stockOrder));
+      void saveWatchlist?.(stockOrder);
     }
-  }, [stockOrder, watchlistLoaded]);
+  }, [saveWatchlist, stockOrder, watchlistLoaded]);
 
   useEffect(() => {
     const source = new EventSource("/api/yahoo-stream");
@@ -566,7 +578,10 @@ export function ApeTermWeb() {
       ].join("\n");
       const response = await fetch("/api/agent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(auth?.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+        },
         body: JSON.stringify({ messages: nextMessages, context }),
       });
       const data = (await response.json()) as AgentData & { error?: string };
@@ -912,6 +927,15 @@ export function ApeTermWeb() {
             open/toggle&nbsp;&nbsp; [o] browser&nbsp;&nbsp; [r] refresh
           </span>
         )}
+        {auth && (
+          <button
+            type="button"
+            onClick={() => void auth.signOut()}
+            className="float-right hover:text-[#e8e8e8]"
+          >
+            {auth.userEmail} · sign out
+          </button>
+        )}
       </footer>
 
       {overlay && (
@@ -1074,5 +1098,13 @@ export function ApeTermWeb() {
         </div>
       )}
     </div>
+  );
+}
+
+export function AuthenticatedApeTerm() {
+  return (
+    <AuthGate>
+      <ApeTermWeb />
+    </AuthGate>
   );
 }
