@@ -109,15 +109,10 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) =
 
         <div className="w-full max-w-[420px]">
           <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
-            {mode === "signin" ? "Welcome back" : "Create your account"}
+            {mode === "signin" ? "Sign in" : "Create account"}
           </h1>
-          <p className="mt-3 max-w-[390px] text-[14px] leading-6 text-[#929292]">
-            {mode === "signin"
-              ? "Sign in to access your market workspace."
-              : "One account for your watchlists, notes and ApeTerm agent."}
-          </p>
 
-          <form onSubmit={submit} className="mt-9 space-y-5">
+          <form onSubmit={submit} className="mt-8 space-y-5">
             <label className="block">
               <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Email</span>
               <input
@@ -199,7 +194,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) =
       </section>
 
       <aside className="hidden min-h-screen items-center justify-center border-l border-[#222] bg-[#080808] lg:flex">
-        <div className="scale-[1.8] text-[#b9b9b9]">
+        <div className="scale-[1.9] text-[#b9b9b9]">
           <Logo />
         </div>
       </aside>
