@@ -1,5 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "bun run build",
-  "outputDirectory": ".vercel/output"
+  "outputDirectory": ".vercel/output",
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "app.apeterm.com" }],
+      "destination": "/app",
+      "permanent": false
+    }
+  ]
 }

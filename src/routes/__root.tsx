@@ -77,22 +77,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ApeTerm — the open-source investment terminal" },
+      { title: "ApeTerm — open-source investment terminal" },
       {
         name: "description",
         content:
-          "ApeTerm is a free, open-source, AI-powered investment terminal. Market data, SEC filings, news and an analyst at your prompt — all keyboard-driven.",
+          "A fast, keyboard-driven terminal for market prices, SEC filings, news, notes, and research.",
       },
-      { property: "og:title", content: "ApeTerm — the open-source investment terminal" },
+      { property: "og:title", content: "ApeTerm — open-source investment terminal" },
       {
         property: "og:description",
-        content:
-          "Market data, filings, news and AI in one calm, keyboard-driven terminal. MIT-licensed and local-first.",
+        content: "Prices, filings, news, and notes in one fast, local-first market workspace.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "/logo.png" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "/logo.png" },
+      { name: "twitter:card", content: "summary" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
