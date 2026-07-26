@@ -9,9 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WebRouteImport } from './routes/web'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SalaryRoiRouteImport } from './routes/salary-roi'
+import { Route as ProductRouteImport } from './routes/product'
+import { Route as OpenSourceRouteImport } from './routes/open-source'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as DesktopRouteImport } from './routes/desktop'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiYahooStreamRouteImport } from './routes/api.yahoo-stream'
@@ -22,6 +26,11 @@ import { Route as ApiMarketRouteImport } from './routes/api.market'
 import { Route as ApiInstrumentRouteImport } from './routes/api.instrument'
 import { Route as ApiAgentRouteImport } from './routes/api.agent'
 
+const WebRoute = WebRouteImport.update({
+  id: '/web',
+  path: '/web',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -32,9 +41,24 @@ const SalaryRoiRoute = SalaryRoiRouteImport.update({
   path: '/salary-roi',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductRoute = ProductRouteImport.update({
+  id: '/product',
+  path: '/product',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpenSourceRoute = OpenSourceRouteImport.update({
+  id: '/open-source',
+  path: '/open-source',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesktopRoute = DesktopRouteImport.update({
+  id: '/desktop',
+  path: '/desktop',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -86,9 +110,13 @@ const ApiAgentRoute = ApiAgentRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/desktop': typeof DesktopRoute
   '/docs': typeof DocsRoute
+  '/open-source': typeof OpenSourceRoute
+  '/product': typeof ProductRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/web': typeof WebRoute
   '/api/agent': typeof ApiAgentRoute
   '/api/instrument': typeof ApiInstrumentRoute
   '/api/market': typeof ApiMarketRoute
@@ -100,9 +128,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/desktop': typeof DesktopRoute
   '/docs': typeof DocsRoute
+  '/open-source': typeof OpenSourceRoute
+  '/product': typeof ProductRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/web': typeof WebRoute
   '/api/agent': typeof ApiAgentRoute
   '/api/instrument': typeof ApiInstrumentRoute
   '/api/market': typeof ApiMarketRoute
@@ -115,9 +147,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/desktop': typeof DesktopRoute
   '/docs': typeof DocsRoute
+  '/open-source': typeof OpenSourceRoute
+  '/product': typeof ProductRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/web': typeof WebRoute
   '/api/agent': typeof ApiAgentRoute
   '/api/instrument': typeof ApiInstrumentRoute
   '/api/market': typeof ApiMarketRoute
@@ -131,9 +167,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/desktop'
     | '/docs'
+    | '/open-source'
+    | '/product'
     | '/salary-roi'
     | '/sitemap.xml'
+    | '/web'
     | '/api/agent'
     | '/api/instrument'
     | '/api/market'
@@ -145,9 +185,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/desktop'
     | '/docs'
+    | '/open-source'
+    | '/product'
     | '/salary-roi'
     | '/sitemap.xml'
+    | '/web'
     | '/api/agent'
     | '/api/instrument'
     | '/api/market'
@@ -159,9 +203,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/desktop'
     | '/docs'
+    | '/open-source'
+    | '/product'
     | '/salary-roi'
     | '/sitemap.xml'
+    | '/web'
     | '/api/agent'
     | '/api/instrument'
     | '/api/market'
@@ -174,9 +222,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
+  DesktopRoute: typeof DesktopRoute
   DocsRoute: typeof DocsRoute
+  OpenSourceRoute: typeof OpenSourceRoute
+  ProductRoute: typeof ProductRoute
   SalaryRoiRoute: typeof SalaryRoiRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  WebRoute: typeof WebRoute
   ApiAgentRoute: typeof ApiAgentRoute
   ApiInstrumentRoute: typeof ApiInstrumentRoute
   ApiMarketRoute: typeof ApiMarketRoute
@@ -188,6 +240,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/web': {
+      id: '/web'
+      path: '/web'
+      fullPath: '/web'
+      preLoaderRoute: typeof WebRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -202,11 +261,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalaryRoiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/product': {
+      id: '/product'
+      path: '/product'
+      fullPath: '/product'
+      preLoaderRoute: typeof ProductRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/open-source': {
+      id: '/open-source'
+      path: '/open-source'
+      fullPath: '/open-source'
+      preLoaderRoute: typeof OpenSourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs': {
       id: '/docs'
       path: '/docs'
       fullPath: '/docs'
       preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desktop': {
+      id: '/desktop'
+      path: '/desktop'
+      fullPath: '/desktop'
+      preLoaderRoute: typeof DesktopRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -278,9 +358,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
+  DesktopRoute: DesktopRoute,
   DocsRoute: DocsRoute,
+  OpenSourceRoute: OpenSourceRoute,
+  ProductRoute: ProductRoute,
   SalaryRoiRoute: SalaryRoiRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  WebRoute: WebRoute,
   ApiAgentRoute: ApiAgentRoute,
   ApiInstrumentRoute: ApiInstrumentRoute,
   ApiMarketRoute: ApiMarketRoute,

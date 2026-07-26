@@ -1,279 +1,240 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Github } from "lucide-react";
-import { TerminalMock } from "@/components/site/terminal-mock";
+import { ArrowRight, ArrowUpRight, Github, Monitor, SquareTerminal } from "lucide-react";
+import { motion } from "motion/react";
+import { PromoLayout } from "@/components/site/promo-layout";
+import { RevealBlock, SignalRail, TerminalStage } from "@/components/site/promo-motion";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ApeTerm — open-source investment terminal" },
+      { title: "ApeTerm — market research for terminal and web" },
       {
         name: "description",
         content:
-          "A fast, keyboard-driven terminal for market prices, SEC filings, news, notes, and research.",
+          "ApeTerm brings prices, filings, news, notes, and research into a keyboard-driven desktop terminal and web app.",
       },
     ],
   }),
   component: Index,
 });
 
-const installCommand =
-  "curl -fsSL https://github.com/LongdeLao/apeterm/raw/master/install.sh | bash";
-
-const capabilities = [
+const pathways = [
   {
-    number: "01",
-    title: "Markets",
-    body: "Track stocks, ETFs, and crypto from one keyboard-driven watchlist.",
-    detail: "Live quotes · volume · relative volume",
+    to: "/desktop" as const,
+    index: "01",
+    icon: SquareTerminal,
+    title: "Desktop terminal",
+    eyebrow: "Rust / local-first",
+    body: "A fast TUI with local SQLite storage, keyboard navigation, and direct control over providers and configuration.",
+    action: "Explore desktop",
+    facts: ["macOS, Linux, Windows", "Local watchlists and notes", "Open-source Rust client"],
   },
   {
-    number: "02",
-    title: "Filings",
-    body: "Read institutional holdings, insider trades, and congressional disclosures.",
-    detail: "13F · Form 4 · SEC EDGAR",
-  },
-  {
-    number: "03",
-    title: "News",
-    body: "Keep ticker news, macro headlines, and market feeds in the same workspace.",
-    detail: "RSS · Google News · per-ticker feeds",
-  },
-  {
-    number: "04",
-    title: "Research",
-    body: "Search instruments, keep notes, and optionally ask an agent about what is on screen.",
-    detail: "Local notes · search · optional LLM",
+    to: "/web" as const,
+    index: "02",
+    icon: Monitor,
+    title: "Web workspace",
+    eyebrow: "Browser / account-backed",
+    body: "The same market workflow in a browser: live watchlists, filings, news, charts, and an optional research agent.",
+    action: "Explore web",
+    facts: ["No installation", "Account-backed watchlists", "Desktop-style workspace"],
   },
 ] as const;
 
 function Index() {
   return (
-    <div className="min-h-screen bg-[#f2efe7] text-[#171714]">
-      <header className="border-b border-[#171714]/20">
-        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-5 sm:px-8">
-          <Link to="/" className="flex items-center gap-2.5 font-mono text-sm font-semibold">
-            <img src="/logo.png" alt="" className="h-7 w-7 object-contain" />
-            APETERM
-          </Link>
-          <nav className="hidden items-center gap-7 text-sm md:flex" aria-label="Main navigation">
-            <a href="#product" className="hover:underline hover:underline-offset-4">
-              Product
-            </a>
-            <a href="#principles" className="hover:underline hover:underline-offset-4">
-              Principles
-            </a>
-            <Link to="/docs" className="hover:underline hover:underline-offset-4">
-              Docs
-            </Link>
-            <a
-              href="https://github.com/LongdeLao/apeterm"
-              className="hover:underline hover:underline-offset-4"
-            >
-              GitHub
-            </a>
-          </nav>
-          <Link
-            to="/app"
-            className="border border-[#171714] bg-[#171714] px-4 py-2 text-sm font-medium text-[#f2efe7] hover:bg-transparent hover:text-[#171714]"
-          >
-            Open web app
-          </Link>
-        </div>
-      </header>
-
+    <PromoLayout>
       <main>
-        <section className="border-b border-[#171714]/20">
-          <div className="mx-auto max-w-[1280px] px-5 pb-16 pt-16 sm:px-8 md:pb-24 md:pt-24">
-            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+        <section className="overflow-hidden border-b border-[#171714]/20">
+          <div className="mx-auto max-w-[1320px] px-5 pb-16 pt-16 sm:px-8 md:pb-24 md:pt-24">
+            <div className="grid gap-12 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
               <div>
-                <p className="font-mono text-xs uppercase tracking-[0.14em] text-[#656158]">
-                  Open source · Rust · Local first
-                </p>
-                <h1 className="mt-6 max-w-4xl text-[clamp(3.4rem,8vw,7.5rem)] font-semibold leading-[0.88] tracking-[-0.065em]">
-                  The market,
-                  <br />
-                  in your terminal.
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#69645b]"
+                >
+                  Desktop terminal + web workspace
+                </motion.p>
+                <h1 className="mt-7 max-w-5xl text-[clamp(3.6rem,8.2vw,7.8rem)] font-semibold leading-[0.86] tracking-[-0.07em]">
+                  <motion.span
+                    className="block"
+                    initial={{ opacity: 0, y: 38 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    One market
+                  </motion.span>
+                  <motion.span
+                    className="block text-[#777168]"
+                    initial={{ opacity: 0, y: 38 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    workspace.
+                  </motion.span>
+                  <motion.span
+                    className="block"
+                    initial={{ opacity: 0, y: 38 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.75, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    Two ways in.
+                  </motion.span>
                 </h1>
               </div>
-              <div className="border-l border-[#171714]/25 pl-6 lg:mb-2">
-                <p className="max-w-md text-lg leading-7 text-[#4e4b44]">
-                  Prices, filings, news, and notes in one fast workspace. Built for people who would
-                  rather use a keyboard than manage another dashboard.
+              <motion.div
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.75, delay: 0.25 }}
+                className="border-l border-[#171714]/25 pl-6 lg:mb-2"
+              >
+                <p className="max-w-xl text-lg leading-8 text-[#524e47]">
+                  Follow prices, read filings, scan news, and keep research notes without rebuilding
+                  your workflow around a broker or a collection of tabs.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-5">
-                  <a
-                    href="#install"
-                    className="border border-[#171714] bg-[#171714] px-5 py-3 text-sm font-medium text-[#f2efe7] hover:bg-transparent hover:text-[#171714]"
+                  <Link
+                    to="/product"
+                    className="inline-flex items-center gap-2 border border-[#171714] bg-[#171714] px-5 py-3 text-sm font-medium text-[#f2efe7] transition-colors hover:bg-transparent hover:text-[#171714]"
                   >
-                    Install ApeTerm
-                  </a>
+                    See how it works <ArrowRight className="h-4 w-4" />
+                  </Link>
                   <a
-                    href="https://github.com/LongdeLao/apeterm"
-                    className="inline-flex items-center gap-2 text-sm font-medium underline decoration-[#171714]/35 underline-offset-4 hover:decoration-[#171714]"
+                    href="https://app.apeterm.com"
+                    className="text-sm font-medium underline decoration-[#171714]/35 underline-offset-4 hover:decoration-[#171714]"
                   >
-                    <Github className="h-4 w-4" /> Read the source
+                    Sign in to web
                   </a>
                 </div>
-              </div>
+              </motion.div>
             </div>
-
-            <div id="product" className="mt-16 border border-[#171714] bg-[#0c0c0c] md:mt-24">
-              <div className="flex items-center justify-between border-b border-white/20 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-white/55">
-                <span>ApeTerm / workspace</span>
-                <span>Keyboard driven</span>
-              </div>
-              <TerminalMock className="border-0 shadow-none" />
+            <div className="mt-16 md:mt-24">
+              <TerminalStage />
             </div>
           </div>
         </section>
 
-        <section className="border-b border-[#171714]/20">
-          <div className="mx-auto grid max-w-[1280px] grid-cols-2 divide-x divide-y divide-[#171714]/20 border-x border-[#171714]/20 md:grid-cols-4 md:divide-y-0">
-            {[
-              ["Local storage", "SQLite on your machine"],
-              ["Market data", "Stocks, ETFs, crypto"],
-              ["Public records", "SEC EDGAR filings"],
-              ["Telemetry", "None by default"],
-            ].map(([title, detail]) => (
-              <div key={title} className="px-5 py-6 sm:px-7">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#6c685f]">
-                  {title}
+        <SignalRail />
+
+        <section className="border-b border-[#171714]/20 px-5 py-20 sm:px-8 md:py-28">
+          <div className="mx-auto max-w-[1320px]">
+            <RevealBlock>
+              <div className="grid gap-8 md:grid-cols-2">
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#69645b]">
+                    Choose your workspace
+                  </p>
+                  <h2 className="mt-5 max-w-xl text-4xl font-semibold leading-[0.96] tracking-[-0.05em] md:text-6xl">
+                    Install it locally, or open it in a browser.
+                  </h2>
+                </div>
+                <p className="max-w-lg self-end text-base leading-7 text-[#5d5850] md:justify-self-end">
+                  Desktop is the local-first Rust application. Web is the hosted workspace for
+                  access from any modern browser. They share a product philosophy, not a false claim
+                  of identical storage or runtime.
                 </p>
-                <p className="mt-2 text-sm font-medium">{detail}</p>
               </div>
-            ))}
+            </RevealBlock>
+
+            <div className="mt-16 grid border-l border-t border-[#171714] lg:grid-cols-2">
+              {pathways.map((path, pathIndex) => (
+                <RevealBlock key={path.to} delay={pathIndex * 0.08}>
+                  <article className="flex min-h-[480px] flex-col border-b border-r border-[#171714] p-6 sm:p-9">
+                    <div className="flex items-start justify-between">
+                      <path.icon className="h-6 w-6" strokeWidth={1.5} />
+                      <span className="font-mono text-xs text-[#777168]">{path.index}</span>
+                    </div>
+                    <p className="mt-16 font-mono text-[10px] uppercase tracking-[0.14em] text-[#777168]">
+                      {path.eyebrow}
+                    </p>
+                    <h3 className="mt-4 text-4xl font-semibold tracking-[-0.045em]">
+                      {path.title}
+                    </h3>
+                    <p className="mt-5 max-w-lg leading-7 text-[#57534b]">{path.body}</p>
+                    <ul className="mt-8 space-y-2 border-t border-[#171714]/20 pt-5 font-mono text-[11px] text-[#69645b]">
+                      {path.facts.map((fact) => (
+                        <li key={fact}>— {fact}</li>
+                      ))}
+                    </ul>
+                    <Link
+                      to={path.to}
+                      className="mt-auto inline-flex items-center gap-2 pt-10 text-sm font-medium underline underline-offset-4"
+                    >
+                      {path.action} <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </article>
+                </RevealBlock>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[#171714] px-5 py-20 text-[#f2efe7] sm:px-8 md:py-28">
+          <div className="mx-auto grid max-w-[1320px] gap-14 lg:grid-cols-[0.85fr_1.15fr]">
+            <RevealBlock>
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/45">
+                Built for research
+              </p>
+              <h2 className="mt-5 max-w-xl text-4xl font-semibold leading-[0.96] tracking-[-0.05em] md:text-6xl">
+                Context first. Execution stays elsewhere.
+              </h2>
+              <p className="mt-6 max-w-lg leading-7 text-white/58">
+                ApeTerm does not pretend to be a broker. It organizes public market information and
+                your own notes so you can inspect what changed and decide what deserves attention.
+              </p>
+            </RevealBlock>
+            <div className="border-t border-white/30">
+              {[
+                ["Prices", "Track the instruments you care about, without a wall of widgets."],
+                ["Filings", "Move from a headline to the underlying SEC record."],
+                ["News", "Keep market and ticker context beside the watchlist."],
+                ["Notes", "Write down the thesis before the market tests it."],
+              ].map(([title, body], index) => (
+                <RevealBlock key={title} delay={index * 0.06}>
+                  <div className="grid grid-cols-[42px_1fr] gap-4 border-b border-white/20 py-6">
+                    <span className="font-mono text-xs text-white/35">0{index + 1}</span>
+                    <div className="grid gap-2 sm:grid-cols-[150px_1fr]">
+                      <h3 className="font-medium">{title}</h3>
+                      <p className="text-sm leading-6 text-white/55">{body}</p>
+                    </div>
+                  </div>
+                </RevealBlock>
+              ))}
+            </div>
           </div>
         </section>
 
         <section className="border-b border-[#171714]/20 px-5 py-20 sm:px-8 md:py-28">
-          <div className="mx-auto max-w-[1280px]">
-            <div className="grid gap-8 md:grid-cols-2">
+          <RevealBlock>
+            <div className="mx-auto flex max-w-[1320px] flex-col items-start justify-between gap-10 md:flex-row md:items-end">
               <div>
-                <p className="font-mono text-xs uppercase tracking-[0.14em] text-[#656158]">
-                  What it does
+                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#69645b]">
+                  Start where you are
                 </p>
-                <h2 className="mt-5 max-w-xl text-4xl font-semibold leading-[0.98] tracking-[-0.045em] md:text-6xl">
-                  The useful parts of a market desk. Nothing ornamental.
+                <h2 className="mt-5 max-w-3xl text-5xl font-semibold leading-[0.92] tracking-[-0.055em] md:text-7xl">
+                  Browser now. Terminal when you want full local control.
                 </h2>
               </div>
-              <p className="max-w-lg self-end text-base leading-7 text-[#57534b] md:justify-self-end">
-                ApeTerm keeps research close to the shell and makes every primary action available
-                from the keyboard. Use the defaults, add your own data keys, or fork the project.
-              </p>
-            </div>
-
-            <div className="mt-16 border-t border-[#171714]">
-              {capabilities.map((item) => (
-                <article
-                  key={item.number}
-                  className="grid gap-4 border-b border-[#171714]/25 py-7 md:grid-cols-[80px_220px_1fr_280px] md:items-baseline"
+              <div className="flex shrink-0 flex-wrap gap-3">
+                <a
+                  href="https://app.apeterm.com"
+                  className="border border-[#171714] bg-[#171714] px-5 py-3 text-sm font-medium text-[#f2efe7]"
                 >
-                  <span className="font-mono text-xs text-[#777168]">{item.number}</span>
-                  <h3 className="text-xl font-semibold tracking-[-0.02em]">{item.title}</h3>
-                  <p className="max-w-xl text-[#4f4b44]">{item.body}</p>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#777168] md:text-right">
-                    {item.detail}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="principles"
-          className="bg-[#171714] px-5 py-20 text-[#f2efe7] sm:px-8 md:py-28"
-        >
-          <div className="mx-auto grid max-w-[1280px] gap-14 md:grid-cols-[0.8fr_1.2fr]">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.14em] text-[#a7a298]">
-                Why open source
-              </p>
-              <h2 className="mt-5 text-4xl font-semibold leading-none tracking-[-0.045em] md:text-6xl">
-                Your research setup should belong to you.
-              </h2>
-            </div>
-            <div className="border-t border-white/35">
-              {[
-                [
-                  "Local by default",
-                  "Watchlists, notes, and settings stay in a local SQLite database.",
-                ],
-                [
-                  "Inspectable",
-                  "The source, data adapters, and agent actions are available to audit.",
-                ],
-                [
-                  "Replaceable",
-                  "Bring your own providers and model keys without changing the workflow.",
-                ],
-              ].map(([title, body], index) => (
-                <div
-                  key={title}
-                  className="grid grid-cols-[42px_1fr] gap-4 border-b border-white/25 py-7"
+                  Sign in
+                </a>
+                <a
+                  href="https://github.com/LongdeLao/apeterm"
+                  className="inline-flex items-center gap-2 border border-[#171714] px-5 py-3 text-sm font-medium"
                 >
-                  <span className="font-mono text-xs text-white/45">0{index + 1}</span>
-                  <div>
-                    <h3 className="text-lg font-medium">{title}</h3>
-                    <p className="mt-2 max-w-xl leading-7 text-white/60">{body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="install" className="border-b border-[#171714]/20 px-5 py-20 sm:px-8 md:py-28">
-          <div className="mx-auto max-w-[1280px]">
-            <div className="grid gap-12 lg:grid-cols-2 lg:items-end">
-              <div>
-                <p className="font-mono text-xs uppercase tracking-[0.14em] text-[#656158]">
-                  Install
-                </p>
-                <h2 className="mt-5 text-5xl font-semibold leading-[0.95] tracking-[-0.05em] md:text-7xl">
-                  Start with one command.
-                </h2>
-                <p className="mt-6 max-w-lg text-[#57534b]">
-                  Prebuilt for macOS Apple Silicon, Linux x86_64, and Windows x86_64. No account
-                  required for the desktop terminal.
-                </p>
-              </div>
-              <div>
-                <div className="overflow-x-auto border border-[#171714] bg-[#e8e4da] px-4 py-4 font-mono text-xs sm:text-sm">
-                  <span className="mr-3 text-[#777168]">$</span>
-                  {installCommand}
-                </div>
-                <div className="mt-5 flex flex-wrap gap-5 text-sm">
-                  <Link
-                    to="/docs"
-                    className="inline-flex items-center gap-1.5 underline underline-offset-4"
-                  >
-                    Read installation docs <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Link>
-                  <Link
-                    to="/app"
-                    className="inline-flex items-center gap-1.5 underline underline-offset-4"
-                  >
-                    Use the web app <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
+                  <Github className="h-4 w-4" /> View source
+                </a>
               </div>
             </div>
-          </div>
+          </RevealBlock>
         </section>
       </main>
-
-      <footer className="px-5 py-10 sm:px-8">
-        <div className="mx-auto flex max-w-[1280px] flex-col gap-6 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="font-mono text-xs">APETERM / 2026</div>
-          <div className="flex flex-wrap gap-6 text-[#57534b]">
-            <a href="https://github.com/LongdeLao/apeterm">Source</a>
-            <a href="https://github.com/LongdeLao/apeterm/issues">Issues</a>
-            <Link to="/docs">Documentation</Link>
-            <span>Not investment advice</span>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PromoLayout>
   );
 }
