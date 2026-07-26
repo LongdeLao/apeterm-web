@@ -63,6 +63,17 @@ type SecData = { entities: SecEntity[]; errors: string[]; updatedAt: string };
 type SearchResult = { symbol: string; name: string; type: string; exchange: string };
 type SearchData = { results: SearchResult[]; error?: string };
 type InstrumentDetail = ChartDetail;
+type Experience = "simple" | "pro";
+type Density = "comfortable" | "compact";
+type AgentTone = "concise" | "normal" | "detailed";
+type ExplanationLevel = "beginner" | "experienced";
+type WebPreferences = {
+  experience: Experience;
+  density: Density;
+  agentTone: AgentTone;
+  explanations: ExplanationLevel;
+  highContrast: boolean;
+};
 type AgentMessage = { role: "user" | "assistant"; content: string };
 type AgentAction = {
   type: "add_to_watchlist" | "remove_from_watchlist";
@@ -85,6 +96,14 @@ const defaultStockOrder = [
   "NFLX",
 ];
 const watchlistStorageKey = "apeterm:watchlist";
+const preferencesStorageKey = "apeterm:web-preferences";
+const defaultPreferences: WebPreferences = {
+  experience: "pro",
+  density: "compact",
+  agentTone: "normal",
+  explanations: "experienced",
+  highContrast: false,
+};
 const cryptoOrder = ["BTC", "ETH", "SOL", "XRP", "BNB", "DOGE", "ADA", "AVAX"];
 
 async function getJson<T>(url: string): Promise<T> {
@@ -284,6 +303,36 @@ function Window({
   );
 }
 
+function SettingChoices<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: readonly T[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={value === option}
+          onClick={() => onChange(option)}
+          className={`border px-2 py-1 capitalize ${
+            value === option
+              ? "border-[#e8e8e8] bg-[#e8e8e8] text-[#0c0c0c]"
+              : "border-[#555] text-[#a8a8a8] hover:border-[#909090] hover:text-[#e8e8e8]"
+          }`}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ApeTermWeb() {
   const auth = useApeAuth();
   const authenticatedSymbols = auth?.initialSymbols;
@@ -315,7 +364,12 @@ export function ApeTermWeb() {
   const [searchRow, setSearchRow] = useState(0);
   const [selectedInstrument, setSelectedInstrument] = useState<SearchResult | null>(null);
   const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframe>("3m");
+  const [preferences, setPreferences] = useState<WebPreferences>(defaultPreferences);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const updatePreferences = (patch: Partial<WebPreferences>) =>
+    setPreferences((current) => ({ ...current, ...patch }));
 
   const market = useQuery({
     queryKey: ["market", stockOrder.join(",")],
@@ -357,6 +411,25 @@ export function ApeTermWeb() {
       void saveWatchlist?.(stockOrder);
     }
   }, [saveWatchlist, stockOrder, watchlistLoaded]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(
+        window.localStorage.getItem(preferencesStorageKey) ?? "null",
+      ) as Partial<WebPreferences> | null;
+      if (saved) setPreferences((current) => ({ ...current, ...saved }));
+    } catch {
+      // Ignore corrupt local settings.
+    } finally {
+      setPreferencesLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (preferencesLoaded) {
+      window.localStorage.setItem(preferencesStorageKey, JSON.stringify(preferences));
+    }
+  }, [preferences, preferencesLoaded]);
 
   useEffect(() => {
     const source = new EventSource("/api/yahoo-stream");
@@ -489,6 +562,12 @@ export function ApeTermWeb() {
     const handleKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      if ((event.metaKey || event.ctrlKey) && event.key === ",") {
+        event.preventDefault();
+        event.stopPropagation();
+        setOverlay("settings");
+        return;
+      }
       if (event.key === "Escape") {
         if (selectedInstrument) setSelectedInstrument(null);
         else setOverlay(null);
@@ -525,8 +604,10 @@ export function ApeTermWeb() {
       else if (event.key === "/") {
         setSelectedInstrument(null);
         setOverlay("search");
-      } else if (event.key === ",") setOverlay("settings");
-      else if (event.key === "?") setOverlay("help");
+      } else if (event.key === ",") {
+        event.preventDefault();
+        setOverlay("settings");
+      } else if (event.key === "?") setOverlay("help");
       else if (event.key === "ArrowRight") {
         if (focused === "news") setNewsTab((value) => (value + 1) % 5);
         if (focused === "watchlist") setWatchTab((value) => (value + 1) % 2);
@@ -539,8 +620,8 @@ export function ApeTermWeb() {
         if (focused === "notes") setNoteRow((value) => (value + 1) % activeNotes.length);
       }
     };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    window.addEventListener("keydown", handleKey, { capture: true });
+    return () => window.removeEventListener("keydown", handleKey, { capture: true });
   }, [
     activeHeadlines.length,
     activeNotes.length,
@@ -568,6 +649,7 @@ export function ApeTermWeb() {
     setAgentLoading(true);
     try {
       const context = [
+        `Response preference: ${preferences.agentTone} tone, ${preferences.explanations} explanations`,
         `Watchlist symbols: ${stockOrder.join(", ")}`,
         `Watchlist quotes: ${activeQuotes.map((quote) => `${quote[0]} ${quote[1]} ${quote[2]}`).join(", ")}`,
         `Latest news: ${activeHeadlines
@@ -620,7 +702,11 @@ export function ApeTermWeb() {
   }
 
   return (
-    <div className="h-screen min-h-[460px] overflow-hidden bg-[#0c0c0c] font-mono text-[12px] leading-[1.36] text-[#e8e8e8] selection:bg-[#e8e8e8] selection:text-[#0c0c0c]">
+    <div
+      className={`h-screen min-h-[460px] overflow-hidden bg-[#0c0c0c] font-mono leading-[1.36] text-[#e8e8e8] selection:bg-[#e8e8e8] selection:text-[#0c0c0c] ${
+        preferences.density === "compact" ? "text-[12px]" : "text-[13px]"
+      } ${preferences.highContrast ? "contrast-125" : ""}`}
+    >
       <div className="flex h-[calc(100vh-22px)] min-h-[438px]">
         <main
           className={`grid min-w-0 flex-1 grid-cols-2 grid-rows-2 ${agentOpen ? "border-r border-[#3a3a3a]" : ""}`}
@@ -919,8 +1005,9 @@ export function ApeTermWeb() {
       </div>
 
       <footer className="h-[22px] overflow-hidden whitespace-nowrap bg-[#0c0c0c] px-1 text-[11px] leading-[22px] text-[#777]">
-        [a] agent&nbsp;&nbsp; [/] search&nbsp;&nbsp; [,] settings&nbsp;&nbsp; [E]
-        simple/pro&nbsp;&nbsp; [ctrl+p] spotlight&nbsp;&nbsp; [?] help&nbsp;&nbsp; [q] quit
+        [a] agent&nbsp;&nbsp; [/] search&nbsp;&nbsp; [,] settings&nbsp;&nbsp; [E]{" "}
+        {preferences.experience}&nbsp;&nbsp; [ctrl+p] spotlight&nbsp;&nbsp; [?] help&nbsp;&nbsp; [q]
+        quit
         {focused === "news" && (
           <span>
             &nbsp;&nbsp; [←/→] filter&nbsp;&nbsp; [j/k] move&nbsp;&nbsp; [enter]
@@ -985,7 +1072,7 @@ export function ApeTermWeb() {
                         Search standard U.S. stocks and ETFs
                       </p>
                     ) : instrumentSearch.isPending ? (
-                      <p className="px-2 py-5 text-center text-[#909090]">○ searching Yahoo</p>
+                      <p className="px-2 py-5 text-center text-[#909090]">○ searching…</p>
                     ) : instrumentSearch.isError ? (
                       <p className="px-2 py-5 text-center text-[#f87171]">! search unavailable</p>
                     ) : searchResults.length === 0 ? (
@@ -1042,6 +1129,10 @@ export function ApeTermWeb() {
                         return;
                       }
                       if (index === 1) setAgentOpen(true);
+                      if (index === 7) {
+                        setOverlay("settings");
+                        return;
+                      }
                       setOverlay(null);
                     }}
                     className={`block w-full px-2 py-1 text-left ${spotlightRow === index ? "bg-[#181818] font-bold" : ""}`}
@@ -1055,22 +1146,106 @@ export function ApeTermWeb() {
             )}
             {overlay === "settings" && (
               <div>
-                <p className="bg-[#e8e8e8] px-1 font-bold text-[#0c0c0c]"> Settings </p>
-                <div className="grid grid-cols-2 gap-y-2 px-3 py-4">
-                  <span>Experience</span>
-                  <span>Pro</span>
-                  <span>Tone</span>
-                  <span>Normal</span>
-                  <span>Explanations</span>
-                  <span>beginner</span>
-                  <span>Agent style</span>
-                  <span>Chat</span>
-                  <span>Language</span>
-                  <span>English</span>
-                  <span>Theme</span>
-                  <span>Dark</span>
+                <div className="flex items-center justify-between bg-[#e8e8e8] px-2 py-1 font-bold text-[#0c0c0c]">
+                  <span>Settings</span>
+                  <button
+                    type="button"
+                    onClick={() => setOverlay(null)}
+                    aria-label="Close settings"
+                  >
+                    esc
+                  </button>
                 </div>
-                <p className="px-2 pb-2 text-[#909090]">[j/k] move [enter] change [esc] back</p>
+                <div className="max-h-[70vh] divide-y divide-[#303030] overflow-y-auto px-3">
+                  <section className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-4 py-4">
+                    <div>
+                      <p className="font-bold">Interface</p>
+                      <p className="mt-1 text-[#777]">Layout and visual density.</p>
+                    </div>
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="mb-2 block text-[#a8a8a8]">Experience</span>
+                        <SettingChoices
+                          value={preferences.experience}
+                          options={["simple", "pro"] as const}
+                          onChange={(experience) => updatePreferences({ experience })}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-[#a8a8a8]">Density</span>
+                        <SettingChoices
+                          value={preferences.density}
+                          options={["comfortable", "compact"] as const}
+                          onChange={(density) => updatePreferences({ density })}
+                        />
+                      </label>
+                      <label className="flex items-center justify-between gap-4">
+                        <span>
+                          <span className="block text-[#a8a8a8]">High contrast</span>
+                          <span className="text-[#777]">Increase terminal contrast.</span>
+                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={preferences.highContrast}
+                          onClick={() =>
+                            updatePreferences({ highContrast: !preferences.highContrast })
+                          }
+                          className={`min-w-[44px] border px-2 py-1 ${
+                            preferences.highContrast
+                              ? "border-[#34d399] text-[#34d399]"
+                              : "border-[#555] text-[#777]"
+                          }`}
+                        >
+                          {preferences.highContrast ? "on" : "off"}
+                        </button>
+                      </label>
+                    </div>
+                  </section>
+                  <section className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-4 py-4">
+                    <div>
+                      <p className="font-bold">Agent</p>
+                      <p className="mt-1 text-[#777]">How answers are written.</p>
+                    </div>
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="mb-2 block text-[#a8a8a8]">Tone</span>
+                        <SettingChoices
+                          value={preferences.agentTone}
+                          options={["concise", "normal", "detailed"] as const}
+                          onChange={(agentTone) => updatePreferences({ agentTone })}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-[#a8a8a8]">Explanations</span>
+                        <SettingChoices
+                          value={preferences.explanations}
+                          options={["beginner", "experienced"] as const}
+                          onChange={(explanations) => updatePreferences({ explanations })}
+                        />
+                      </label>
+                    </div>
+                  </section>
+                  <section className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-4 py-4">
+                    <div>
+                      <p className="font-bold">Account</p>
+                      <p className="mt-1 text-[#777]">Browser-specific settings.</p>
+                    </div>
+                    <div>
+                      <p className="text-[#a8a8a8]">{auth?.userEmail ?? "Local session"}</p>
+                      <button
+                        type="button"
+                        onClick={() => setPreferences(defaultPreferences)}
+                        className="mt-3 border border-[#555] px-2 py-1 text-[#a8a8a8] hover:border-[#909090] hover:text-[#e8e8e8]"
+                      >
+                        Reset settings
+                      </button>
+                    </div>
+                  </section>
+                </div>
+                <p className="border-t border-[#3a3a3a] px-3 py-2 text-[#777]">
+                  Saved automatically in this browser · comma opens settings
+                </p>
               </div>
             )}
             {overlay === "help" && (
@@ -1087,6 +1262,8 @@ export function ApeTermWeb() {
                   <span>change focused pane</span>
                   <span>/</span>
                   <span>search instruments</span>
+                  <span>, / ctrl+,</span>
+                  <span>settings</span>
                   <span>a</span>
                   <span>agent</span>
                   <span>esc</span>
