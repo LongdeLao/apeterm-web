@@ -68,15 +68,12 @@ export function TerminalMock({ className }: { className?: string }) {
     <div
       ref={containerRef}
       className={cn(
-        "relative overflow-hidden rounded-md border border-white/20 bg-[#2d2d2b] text-[#e8e6df] shadow-[0_24px_70px_-42px_rgba(0,0,0,0.75)]",
+        "relative overflow-hidden border border-white/20 bg-[#0c0c0c] text-[#e8e6df]",
         className,
       )}
     >
-      <div className="flex items-center gap-2 border-b border-white/14 bg-[#393937] px-3 py-1.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ff6159]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-        <div className="ml-4 flex h-5 w-56 items-center rounded bg-white/8 px-3 font-mono text-[10px] text-white/38">
+      <div className="flex items-center gap-3 border-b border-white/14 bg-[#151515] px-3 py-1.5">
+        <div className="flex h-5 w-56 items-center border border-white/10 px-3 font-mono text-[10px] text-white/38">
           {t.terminal.searchPlaceholder}
         </div>
         <div className="ml-auto font-mono text-[10px] tabular-nums text-white/48">
