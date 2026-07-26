@@ -105,6 +105,19 @@ const defaultPreferences: WebPreferences = {
   highContrast: false,
 };
 const cryptoOrder = ["BTC", "ETH", "SOL", "XRP", "BNB", "DOGE", "ADA", "AVAX"];
+const commonSearchResults: SearchResult[] = [
+  { symbol: "AAPL", name: "Apple Inc.", type: "EQUITY", exchange: "NASDAQ" },
+  { symbol: "AMZN", name: "Amazon.com, Inc.", type: "EQUITY", exchange: "NASDAQ" },
+  { symbol: "GOOGL", name: "Alphabet Inc.", type: "EQUITY", exchange: "NASDAQ" },
+  { symbol: "JPM", name: "JPMorgan Chase & Co.", type: "EQUITY", exchange: "NYSE" },
+  { symbol: "META", name: "Meta Platforms, Inc.", type: "EQUITY", exchange: "NASDAQ" },
+  { symbol: "MSFT", name: "Microsoft Corporation", type: "EQUITY", exchange: "NASDAQ" },
+  { symbol: "NFLX", name: "Netflix, Inc.", type: "EQUITY", exchange: "NASDAQ" },
+  { symbol: "NVDA", name: "NVIDIA Corporation", type: "EQUITY", exchange: "NASDAQ" },
+  { symbol: "QQQ", name: "Invesco QQQ Trust", type: "ETF", exchange: "NASDAQ" },
+  { symbol: "SPY", name: "SPDR S&P 500 ETF Trust", type: "ETF", exchange: "NYSE Arca" },
+  { symbol: "TSLA", name: "Tesla, Inc.", type: "EQUITY", exchange: "NASDAQ" },
+];
 
 async function getJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { cache: "no-store" });
@@ -517,7 +530,17 @@ export function ApeTermWeb() {
   }, [searchQuery]);
 
   const panels: Panel[] = useMemo(() => ["news", "watchlist", "sec", "notes"], []);
-  const searchResults = instrumentSearch.data?.results ?? [];
+  const searchResults = useMemo(() => {
+    const query = searchQuery.trim().toUpperCase();
+    if (!query) return [];
+    const local = commonSearchResults.filter(
+      (result) => result.symbol.includes(query) || result.name.toUpperCase().includes(query),
+    );
+    return [...local, ...(instrumentSearch.data?.results ?? [])].filter(
+      (result, index, all) =>
+        all.findIndex((candidate) => candidate.symbol === result.symbol) === index,
+    );
+  }, [instrumentSearch.data?.results, searchQuery]);
   const safeSearchRow = searchResults.length ? searchRow % searchResults.length : 0;
   const activeNewsItems = liveNews.data?.items.length ? liveNews.data.items : null;
   const activeHeadlines = activeNewsItems
@@ -1067,13 +1090,7 @@ export function ApeTermWeb() {
                       <p className="px-2 py-5 text-center text-[#909090]">
                         Search standard U.S. stocks and ETFs
                       </p>
-                    ) : instrumentSearch.isPending ? (
-                      <p className="px-2 py-5 text-center text-[#909090]">○ searching…</p>
-                    ) : instrumentSearch.isError ? (
-                      <p className="px-2 py-5 text-center text-[#f87171]">! search unavailable</p>
-                    ) : searchResults.length === 0 ? (
-                      <p className="px-2 py-5 text-center text-[#909090]">no instruments found</p>
-                    ) : (
+                    ) : searchResults.length ? (
                       searchResults.map((result, index) => (
                         <button
                           key={`${result.symbol}-${result.exchange}`}
@@ -1093,6 +1110,12 @@ export function ApeTermWeb() {
                           </span>
                         </button>
                       ))
+                    ) : instrumentSearch.isPending ? (
+                      <p className="px-2 py-5 text-center text-[#909090]">○ searching…</p>
+                    ) : instrumentSearch.isError ? (
+                      <p className="px-2 py-5 text-center text-[#f87171]">! search unavailable</p>
+                    ) : (
+                      <p className="px-2 py-5 text-center text-[#909090]">no instruments found</p>
                     )}
                   </div>
                   <p className="border-t border-[#3a3a3a] px-2 py-2 text-[#909090]">
