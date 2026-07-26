@@ -20,6 +20,7 @@ import { Route as ApiSearchRouteImport } from './routes/api.search'
 import { Route as ApiNewsRouteImport } from './routes/api.news'
 import { Route as ApiMarketRouteImport } from './routes/api.market'
 import { Route as ApiInstrumentRouteImport } from './routes/api.instrument'
+import { Route as ApiAgentRouteImport } from './routes/api.agent'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -76,6 +77,11 @@ const ApiInstrumentRoute = ApiInstrumentRouteImport.update({
   path: '/api/instrument',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAgentRoute = ApiAgentRouteImport.update({
+  id: '/api/agent',
+  path: '/api/agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/agent': typeof ApiAgentRoute
   '/api/instrument': typeof ApiInstrumentRoute
   '/api/market': typeof ApiMarketRoute
   '/api/news': typeof ApiNewsRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/agent': typeof ApiAgentRoute
   '/api/instrument': typeof ApiInstrumentRoute
   '/api/market': typeof ApiMarketRoute
   '/api/news': typeof ApiNewsRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/agent': typeof ApiAgentRoute
   '/api/instrument': typeof ApiInstrumentRoute
   '/api/market': typeof ApiMarketRoute
   '/api/news': typeof ApiNewsRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/salary-roi'
     | '/sitemap.xml'
+    | '/api/agent'
     | '/api/instrument'
     | '/api/market'
     | '/api/news'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/salary-roi'
     | '/sitemap.xml'
+    | '/api/agent'
     | '/api/instrument'
     | '/api/market'
     | '/api/news'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/salary-roi'
     | '/sitemap.xml'
+    | '/api/agent'
     | '/api/instrument'
     | '/api/market'
     | '/api/news'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   DocsRoute: typeof DocsRoute
   SalaryRoiRoute: typeof SalaryRoiRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiAgentRoute: typeof ApiAgentRoute
   ApiInstrumentRoute: typeof ApiInstrumentRoute
   ApiMarketRoute: typeof ApiMarketRoute
   ApiNewsRoute: typeof ApiNewsRoute
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInstrumentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/agent': {
+      id: '/api/agent'
+      path: '/api/agent'
+      fullPath: '/api/agent'
+      preLoaderRoute: typeof ApiAgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsRoute: DocsRoute,
   SalaryRoiRoute: SalaryRoiRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiAgentRoute: ApiAgentRoute,
   ApiInstrumentRoute: ApiInstrumentRoute,
   ApiMarketRoute: ApiMarketRoute,
   ApiNewsRoute: ApiNewsRoute,
