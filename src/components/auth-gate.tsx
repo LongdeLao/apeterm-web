@@ -98,164 +98,130 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) =
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#080908] font-mono text-[13px] text-[#e8e8e8]">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:42px_42px]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-[#34d399]/[0.06] blur-[120px]"
-      />
+    <main className="min-h-screen bg-[#080808] px-4 py-6 font-sans text-[#f4f4f4] sm:px-6 sm:py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-[1120px] overflow-hidden rounded-2xl border border-[#242424] bg-[#101010] p-2 shadow-[0_32px_100px_rgba(0,0,0,0.45)] lg:min-h-[720px] lg:grid-cols-[1.04fr_0.96fr]">
+        <section className="flex min-h-[650px] flex-col px-6 py-7 sm:px-12 sm:py-10 lg:px-16">
+          <header className="flex items-center gap-2 text-[14px] font-semibold tracking-[-0.02em]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#ededed] font-mono text-[12px] font-bold text-[#111]">
+              A
+            </span>
+            apeterm
+          </header>
 
-      <div className="relative mx-auto grid min-h-screen w-full max-w-[1180px] items-center gap-16 px-5 py-10 md:grid-cols-[1.08fr_0.92fr] md:px-10">
-        <section className="hidden md:block">
-          <div className="mb-12 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-[#7d827f]">
-            <span className="h-2 w-2 rounded-full bg-[#34d399] shadow-[0_0_14px_rgba(52,211,153,0.8)]" />
-            markets online
-          </div>
-          <div className="flex items-end gap-7">
-            <Logo />
-            <div className="mb-1 border-l border-[#343735] pl-6">
-              <h1 className="text-3xl font-bold tracking-[-0.05em] text-white">
-                Your market command line.
-              </h1>
-              <p className="mt-3 max-w-[460px] leading-6 text-[#8e9490]">
-                Live markets, filings, news and an AI research agent—built into one focused
-                terminal.
-              </p>
-            </div>
-          </div>
+          <div className="my-auto w-full max-w-[430px] py-14">
+            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
+              {mode === "signin" ? "Welcome back" : "Create your account"}
+            </h1>
+            <p className="mt-3 max-w-[390px] text-[14px] leading-6 text-[#929292]">
+              {mode === "signin"
+                ? "Sign in to access your market workspace."
+                : "One account for your watchlists, notes and ApeTerm agent."}
+            </p>
 
-          <div className="mt-12 border border-[#2f3330] bg-[#0b0d0c]/90 shadow-2xl shadow-black/40">
-            <div className="flex items-center justify-between border-b border-[#272a28] px-4 py-2 text-[10px] text-[#686e6a]">
-              <span>APTERM / MARKET PULSE</span>
-              <span>LIVE · 1S</span>
-            </div>
-            <div className="grid grid-cols-[1fr_auto_auto] gap-x-8 gap-y-3 px-4 py-4 text-[12px]">
-              <span className="text-[#a7aca9]">SPY</span>
-              <span>738.93</span>
-              <span className="text-[#34d399]">▲ +0.10%</span>
-              <span className="text-[#a7aca9]">NVDA</span>
-              <span>206.84</span>
-              <span className="text-[#f87171]">▼ -0.92%</span>
-              <span className="text-[#a7aca9]">BTC</span>
-              <span>64,383</span>
-              <span className="text-[#34d399]">▲ +0.32%</span>
-            </div>
-            <div className="border-t border-[#272a28] px-4 py-3 text-[11px] text-[#737975]">
-              <span className="text-[#34d399]">›</span> ask ape&nbsp;{" "}
-              <span className="text-[#aeb3b0]">what is moving the market today?</span>
-              <span className="ml-1 animate-pulse text-[#34d399]">▋</span>
-            </div>
-          </div>
-        </section>
+            <form onSubmit={submit} className="mt-9 space-y-5">
+              <label className="block">
+                <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Email</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  required
+                  autoFocus
+                  value={email}
+                  placeholder="you@example.com"
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="h-12 w-full rounded-lg border border-transparent bg-[#202020] px-4 text-[14px] text-white outline-none transition placeholder:text-[#686868] focus:border-[#505050] focus:bg-[#242424]"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Password</span>
+                <input
+                  type="password"
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  required
+                  minLength={8}
+                  value={password}
+                  placeholder={mode === "signin" ? "Enter your password" : "Minimum 8 characters"}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="h-12 w-full rounded-lg border border-transparent bg-[#202020] px-4 text-[14px] text-white outline-none transition placeholder:text-[#686868] focus:border-[#505050] focus:bg-[#242424]"
+                />
+              </label>
 
-        <section className="mx-auto w-full max-w-[440px]">
-          <div className="mb-8 md:hidden">
-            <Logo />
-          </div>
-          <div className="border border-[#343835] bg-[#0d0f0e]/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-            <div className="flex items-center justify-between border-b border-[#292c2a] px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-[#747a76]">
-              <span>identity / secure access</span>
-              <span className="text-[#34d399]">● encrypted</span>
-            </div>
-            <div className="p-6 sm:p-8">
-              <p className="text-[11px] uppercase tracking-[0.16em] text-[#6f7571]">
-                Welcome to ApeTerm
-              </p>
-              <h2 className="mt-2 text-xl font-bold text-white">
-                {mode === "signin" ? "Sign in to your terminal" : "Create your terminal"}
-              </h2>
+              <div aria-live="polite">
+                {error && <p className="text-[13px] text-[#f87171]">{error}</p>}
+                {message && <p className="text-[13px] text-[#6ee7b7]">{message}</p>}
+              </div>
 
               <button
-                type="button"
-                onClick={() => void signInWithGoogle()}
+                type="submit"
                 disabled={busy !== null}
-                className="mt-7 flex w-full items-center justify-center gap-3 border border-[#4b504c] bg-[#171a18] px-4 py-3 font-bold text-white transition hover:border-[#7b827d] hover:bg-[#1c201d] disabled:cursor-wait disabled:opacity-50"
+                className="h-12 w-full rounded-lg bg-[#ededed] text-[14px] font-semibold text-[#111] transition hover:bg-white disabled:cursor-wait disabled:opacity-50"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white font-sans text-[12px] font-bold text-[#252525]">
-                  G
-                </span>
-                {busy === "google" ? "connecting to Google..." : "Continue with Google"}
+                {busy === "email"
+                  ? "Connecting..."
+                  : mode === "signin"
+                    ? "Sign in"
+                    : "Create account"}
               </button>
+            </form>
 
-              <div className="my-6 flex items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-[#606561]">
-                <span className="h-px flex-1 bg-[#292c2a]" />
-                or use email
-                <span className="h-px flex-1 bg-[#292c2a]" />
-              </div>
+            <div className="my-7 flex items-center gap-4 text-[12px] text-[#686868]">
+              <span className="h-px flex-1 bg-[#2d2d2d]" />
+              or
+              <span className="h-px flex-1 bg-[#2d2d2d]" />
+            </div>
 
-              <div className="mb-6 grid grid-cols-2 border border-[#2f3330] p-1">
-                {(["signin", "signup"] as const).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      setMode(item);
-                      setError("");
-                      setMessage("");
-                    }}
-                    className={`px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition ${mode === item ? "bg-[#e8e8e8] text-[#0c0c0c]" : "text-[#747a76] hover:text-[#d7d9d8]"}`}
-                  >
-                    {item === "signin" ? "Sign in" : "Create account"}
-                  </button>
-                ))}
-              </div>
+            <button
+              type="button"
+              onClick={() => void signInWithGoogle()}
+              disabled={busy !== null}
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#303030] bg-[#181818] text-[14px] font-medium text-[#e5e5e5] transition hover:border-[#484848] hover:bg-[#1d1d1d] disabled:cursor-wait disabled:opacity-50"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[12px] font-bold text-[#222]">
+                G
+              </span>
+              {busy === "google" ? "Connecting..." : "Continue with Google"}
+            </button>
 
-              <form onSubmit={submit} className="space-y-5">
-                <label className="block">
-                  <span className="mb-2 block text-[11px] text-[#858b87]">email_address</span>
-                  <input
-                    type="email"
-                    autoComplete="email"
-                    required
-                    autoFocus
-                    value={email}
-                    placeholder="you@example.com"
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="w-full border border-[#343835] bg-[#090a09] px-3 py-3 text-white outline-none placeholder:text-[#414542] focus:border-[#34d399] focus:shadow-[0_0_0_1px_rgba(52,211,153,0.15)]"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-[11px] text-[#858b87]">password</span>
-                  <input
-                    type="password"
-                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                    required
-                    minLength={8}
-                    value={password}
-                    placeholder="minimum 8 characters"
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="w-full border border-[#343835] bg-[#090a09] px-3 py-3 text-white outline-none placeholder:text-[#414542] focus:border-[#34d399] focus:shadow-[0_0_0_1px_rgba(52,211,153,0.15)]"
-                  />
-                </label>
-                <div aria-live="polite">
-                  {error && (
-                    <p className="border-l-2 border-[#f87171] pl-3 text-[#f87171]">! {error}</p>
-                  )}
-                  {message && (
-                    <p className="border-l-2 border-[#34d399] pl-3 text-[#34d399]">● {message}</p>
-                  )}
-                </div>
-                <button
-                  type="submit"
-                  disabled={busy !== null}
-                  className="w-full bg-[#34d399] px-3 py-3 font-bold text-[#07110d] transition hover:bg-[#6ee7b7] disabled:cursor-wait disabled:opacity-50"
-                >
-                  {busy === "email"
-                    ? "○ establishing session..."
-                    : mode === "signin"
-                      ? "↵ enter apeterm"
-                      : "↵ create account"}
-                </button>
-              </form>
+            <p className="mt-8 text-center text-[13px] text-[#777]">
+              {mode === "signin" ? "New to ApeTerm?" : "Already have an account?"}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === "signin" ? "signup" : "signin");
+                  setError("");
+                  setMessage("");
+                }}
+                className="font-medium text-[#e8e8e8] hover:text-white"
+              >
+                {mode === "signin" ? "Create account" : "Sign in"}
+              </button>
+            </p>
+          </div>
+
+          <p className="text-[11px] text-[#555]">Secure authentication by Supabase</p>
+        </section>
+
+        <aside className="relative hidden overflow-hidden rounded-xl border border-[#292929] bg-[#151515] lg:block">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_15%,rgba(255,255,255,0.08),transparent_34%),linear-gradient(145deg,#111_8%,#191919_45%,#3d453f_100%)]" />
+          <div className="absolute -right-24 -top-20 h-[380px] w-[520px] rotate-[42deg] rounded-[88px] border border-white/[0.06] bg-black/30 shadow-2xl" />
+          <div className="absolute -right-20 top-24 h-[340px] w-[440px] rotate-[42deg] rounded-[72px] border border-white/[0.05] bg-white/[0.025]" />
+          <div className="absolute -bottom-32 -left-32 h-[520px] w-[680px] rounded-full bg-[#bba07a]/45 blur-[80px]" />
+          <div className="absolute bottom-8 left-8 right-8 rounded-xl border border-white/10 bg-black/35 p-6 backdrop-blur-md">
+            <p className="text-[12px] font-medium text-[#d0d0d0]">
+              MARKET INTELLIGENCE, WITHOUT THE NOISE
+            </p>
+            <p className="mt-4 text-lg leading-7 text-white">
+              News, filings, live prices and your research agent in one focused workspace.
+            </p>
+            <div className="mt-6 flex items-center justify-between text-[12px] text-[#a8a8a8]">
+              <span>ApeTerm</span>
+              <span className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#6ee7b7]" />
+                live
+              </span>
             </div>
           </div>
-          <p className="mt-4 text-center text-[10px] uppercase tracking-[0.1em] text-[#555b57]">
-            session secured by supabase · no brokerage connection required
-          </p>
-        </section>
+        </aside>
       </div>
     </main>
   );
