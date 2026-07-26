@@ -98,131 +98,111 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) =
   }
 
   return (
-    <main className="min-h-screen bg-[#080808] px-4 py-6 font-sans text-[#f4f4f4] sm:px-6 sm:py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-[1120px] overflow-hidden rounded-2xl border border-[#242424] bg-[#101010] p-2 shadow-[0_32px_100px_rgba(0,0,0,0.45)] lg:min-h-[720px] lg:grid-cols-[1.04fr_0.96fr]">
-        <section className="flex min-h-[650px] flex-col px-6 py-7 sm:px-12 sm:py-10 lg:px-16">
-          <header className="flex items-center gap-2 text-[14px] font-semibold tracking-[-0.02em]">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#ededed] font-mono text-[12px] font-bold text-[#111]">
-              A
-            </span>
-            apeterm
-          </header>
+    <main className="grid min-h-screen w-full bg-[#0c0c0c] font-sans text-[#f4f4f4] lg:grid-cols-2">
+      <section className="relative flex min-h-screen items-center justify-center px-6 py-24 sm:px-12">
+        <header className="absolute left-6 top-6 flex items-center gap-2 text-[14px] font-semibold tracking-[-0.02em] sm:left-10 sm:top-8">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#ededed] font-mono text-[12px] font-bold text-[#111]">
+            A
+          </span>
+          apeterm
+        </header>
 
-          <div className="my-auto w-full max-w-[430px] py-14">
-            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
-              {mode === "signin" ? "Welcome back" : "Create your account"}
-            </h1>
-            <p className="mt-3 max-w-[390px] text-[14px] leading-6 text-[#929292]">
-              {mode === "signin"
-                ? "Sign in to access your market workspace."
-                : "One account for your watchlists, notes and ApeTerm agent."}
-            </p>
+        <div className="w-full max-w-[420px]">
+          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
+            {mode === "signin" ? "Welcome back" : "Create your account"}
+          </h1>
+          <p className="mt-3 max-w-[390px] text-[14px] leading-6 text-[#929292]">
+            {mode === "signin"
+              ? "Sign in to access your market workspace."
+              : "One account for your watchlists, notes and ApeTerm agent."}
+          </p>
 
-            <form onSubmit={submit} className="mt-9 space-y-5">
-              <label className="block">
-                <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Email</span>
-                <input
-                  type="email"
-                  autoComplete="email"
-                  required
-                  autoFocus
-                  value={email}
-                  placeholder="you@example.com"
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="h-12 w-full rounded-lg border border-transparent bg-[#202020] px-4 text-[14px] text-white outline-none transition placeholder:text-[#686868] focus:border-[#505050] focus:bg-[#242424]"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Password</span>
-                <input
-                  type="password"
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                  required
-                  minLength={8}
-                  value={password}
-                  placeholder={mode === "signin" ? "Enter your password" : "Minimum 8 characters"}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="h-12 w-full rounded-lg border border-transparent bg-[#202020] px-4 text-[14px] text-white outline-none transition placeholder:text-[#686868] focus:border-[#505050] focus:bg-[#242424]"
-                />
-              </label>
+          <form onSubmit={submit} className="mt-9 space-y-5">
+            <label className="block">
+              <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Email</span>
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                autoFocus
+                value={email}
+                placeholder="you@example.com"
+                onChange={(event) => setEmail(event.target.value)}
+                className="h-12 w-full rounded-lg border border-transparent bg-[#202020] px-4 text-[14px] text-white outline-none transition placeholder:text-[#686868] focus:border-[#505050] focus:bg-[#242424]"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Password</span>
+              <input
+                type="password"
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                required
+                minLength={8}
+                value={password}
+                placeholder={mode === "signin" ? "Enter your password" : "Minimum 8 characters"}
+                onChange={(event) => setPassword(event.target.value)}
+                className="h-12 w-full rounded-lg border border-transparent bg-[#202020] px-4 text-[14px] text-white outline-none transition placeholder:text-[#686868] focus:border-[#505050] focus:bg-[#242424]"
+              />
+            </label>
 
-              <div aria-live="polite">
-                {error && <p className="text-[13px] text-[#f87171]">{error}</p>}
-                {message && <p className="text-[13px] text-[#6ee7b7]">{message}</p>}
-              </div>
-
-              <button
-                type="submit"
-                disabled={busy !== null}
-                className="h-12 w-full rounded-lg bg-[#ededed] text-[14px] font-semibold text-[#111] transition hover:bg-white disabled:cursor-wait disabled:opacity-50"
-              >
-                {busy === "email"
-                  ? "Connecting..."
-                  : mode === "signin"
-                    ? "Sign in"
-                    : "Create account"}
-              </button>
-            </form>
-
-            <div className="my-7 flex items-center gap-4 text-[12px] text-[#686868]">
-              <span className="h-px flex-1 bg-[#2d2d2d]" />
-              or
-              <span className="h-px flex-1 bg-[#2d2d2d]" />
+            <div aria-live="polite">
+              {error && <p className="text-[13px] text-[#f87171]">{error}</p>}
+              {message && <p className="text-[13px] text-[#6ee7b7]">{message}</p>}
             </div>
 
             <button
-              type="button"
-              onClick={() => void signInWithGoogle()}
+              type="submit"
               disabled={busy !== null}
-              className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#303030] bg-[#181818] text-[14px] font-medium text-[#e5e5e5] transition hover:border-[#484848] hover:bg-[#1d1d1d] disabled:cursor-wait disabled:opacity-50"
+              className="h-12 w-full rounded-lg bg-[#ededed] text-[14px] font-semibold text-[#111] transition hover:bg-white disabled:cursor-wait disabled:opacity-50"
             >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[12px] font-bold text-[#222]">
-                G
-              </span>
-              {busy === "google" ? "Connecting..." : "Continue with Google"}
+              {busy === "email"
+                ? "Connecting..."
+                : mode === "signin"
+                  ? "Sign in"
+                  : "Create account"}
             </button>
+          </form>
 
-            <p className="mt-8 text-center text-[13px] text-[#777]">
-              {mode === "signin" ? "New to ApeTerm?" : "Already have an account?"}{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode(mode === "signin" ? "signup" : "signin");
-                  setError("");
-                  setMessage("");
-                }}
-                className="font-medium text-[#e8e8e8] hover:text-white"
-              >
-                {mode === "signin" ? "Create account" : "Sign in"}
-              </button>
-            </p>
+          <div className="my-7 flex items-center gap-4 text-[12px] text-[#686868]">
+            <span className="h-px flex-1 bg-[#2d2d2d]" />
+            or
+            <span className="h-px flex-1 bg-[#2d2d2d]" />
           </div>
 
-          <p className="text-[11px] text-[#555]">Secure authentication by Supabase</p>
-        </section>
+          <button
+            type="button"
+            onClick={() => void signInWithGoogle()}
+            disabled={busy !== null}
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#303030] bg-[#181818] text-[14px] font-medium text-[#e5e5e5] transition hover:border-[#484848] hover:bg-[#1d1d1d] disabled:cursor-wait disabled:opacity-50"
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[12px] font-bold text-[#222]">
+              G
+            </span>
+            {busy === "google" ? "Connecting..." : "Continue with Google"}
+          </button>
 
-        <aside className="relative hidden overflow-hidden rounded-xl border border-[#292929] bg-[#151515] lg:block">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_15%,rgba(255,255,255,0.08),transparent_34%),linear-gradient(145deg,#111_8%,#191919_45%,#3d453f_100%)]" />
-          <div className="absolute -right-24 -top-20 h-[380px] w-[520px] rotate-[42deg] rounded-[88px] border border-white/[0.06] bg-black/30 shadow-2xl" />
-          <div className="absolute -right-20 top-24 h-[340px] w-[440px] rotate-[42deg] rounded-[72px] border border-white/[0.05] bg-white/[0.025]" />
-          <div className="absolute -bottom-32 -left-32 h-[520px] w-[680px] rounded-full bg-[#bba07a]/45 blur-[80px]" />
-          <div className="absolute bottom-8 left-8 right-8 rounded-xl border border-white/10 bg-black/35 p-6 backdrop-blur-md">
-            <p className="text-[12px] font-medium text-[#d0d0d0]">
-              MARKET INTELLIGENCE, WITHOUT THE NOISE
-            </p>
-            <p className="mt-4 text-lg leading-7 text-white">
-              News, filings, live prices and your research agent in one focused workspace.
-            </p>
-            <div className="mt-6 flex items-center justify-between text-[12px] text-[#a8a8a8]">
-              <span>ApeTerm</span>
-              <span className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#6ee7b7]" />
-                live
-              </span>
-            </div>
-          </div>
-        </aside>
-      </div>
+          <p className="mt-8 text-center text-[13px] text-[#777]">
+            {mode === "signin" ? "New to ApeTerm?" : "Already have an account?"}{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setError("");
+                setMessage("");
+              }}
+              className="font-medium text-[#e8e8e8] hover:text-white"
+            >
+              {mode === "signin" ? "Create account" : "Sign in"}
+            </button>
+          </p>
+        </div>
+      </section>
+
+      <aside className="hidden min-h-screen items-center justify-center border-l border-[#222] bg-[#080808] lg:flex">
+        <div className="scale-[1.8] text-[#b9b9b9]">
+          <Logo />
+        </div>
+      </aside>
     </main>
   );
 }
