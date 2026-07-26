@@ -441,7 +441,7 @@ export const copy = {
   },
 } as const;
 
-type Copy = typeof copy.en;
+type Copy = (typeof copy)[Locale];
 
 const I18nContext = createContext<{
   locale: Locale;

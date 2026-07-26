@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Github, Star } from "lucide-react";
+import { ArrowUpRight, Github, MonitorUp, Star } from "lucide-react";
 import { FloatingNav } from "@/components/aceternity/floating-nav";
 import { formatCount, useGitHubStats } from "@/hooks/use-github-stats";
 import { useI18n } from "@/lib/i18n";
@@ -79,6 +79,13 @@ export function SiteNav() {
               GitHub
               <GitHubStars />
             </a>
+            <Link
+              to="/app"
+              className="hidden items-center gap-2 rounded-full border border-border/80 bg-white/84 px-4 py-2.5 text-sm text-foreground/80 transition-all hover:-translate-y-0.5 hover:bg-white md:inline-flex"
+            >
+              <MonitorUp className="h-4 w-4" />
+              Web app
+            </Link>
             <a
               href="#download"
               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_16px_36px_-20px_oklch(0.18_0.01_265)] transition-all hover:-translate-y-0.5 hover:opacity-95"

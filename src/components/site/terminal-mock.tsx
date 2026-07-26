@@ -87,7 +87,10 @@ export function TerminalMock({ className }: { className?: string }) {
       <div className="grid min-h-[390px] grid-cols-12 font-mono text-[11px] leading-tight">
         <section className="col-span-5 grid grid-rows-2 border-r border-white/20">
           <div className="border-b border-white/20 p-4">
-            <PanelTitle title={t.terminal.newsTitle} tabs={["ALL", "WATCHLIST", "MACRO", "RSS", "CRYPTO"]} />
+            <PanelTitle
+              title={t.terminal.newsTitle}
+              tabs={["ALL", "WATCHLIST", "MACRO", "RSS", "CRYPTO"]}
+            />
             <div className="mt-3 grid grid-cols-[42px_42px_1fr] gap-x-3 text-white/84">
               {newsTimes.map((n, i) => (
                 <div key={i} className="contents">
@@ -110,7 +113,13 @@ export function TerminalMock({ className }: { className?: string }) {
             <PanelTitle title="SEC" tabs={["INSTITUTIONAL", "CEOS", "CONGRESS"]} />
             <div className="mt-3 grid grid-cols-[150px_1fr] gap-4">
               <div className="space-y-1 text-white/78">
-                {["Berkshire Hathaway", "BlackRock", "Bridgewater Associates", "Citadel Advisors", "Vanguard"].map((name) => (
+                {[
+                  "Berkshire Hathaway",
+                  "BlackRock",
+                  "Bridgewater Associates",
+                  "Citadel Advisors",
+                  "Vanguard",
+                ].map((name) => (
                   <div key={name}>
                     <span className="text-[#62df86]">▲</span> {name}
                   </div>
@@ -138,27 +147,36 @@ export function TerminalMock({ className }: { className?: string }) {
         <section className="col-span-5 border-r border-white/20 p-4">
           <PanelTitle title="Watchlist" tabs={["MAIN", "CRYPTO", "+"]} activeTitle />
           <div className="mt-4 grid grid-cols-[76px_18px_80px_72px_34px_58px_26px_40px] gap-x-3 border-t border-white/28 pt-2 text-white/88">
-            {rows.concat([
-              { sym: "GOOGL", name: "Alphabet", px: 359.91, chg: -0.36 },
-              { sym: "JPM", name: "JPMorgan", px: 334.47, chg: 0.12 },
-              { sym: "META", name: "Meta", px: 582.90, chg: -4.90 },
-            ]).map((r) => (
-              <div key={r.sym} className="contents">
-                <span>{r.sym}</span>
-                <span className="text-white/48">•</span>
-                <span className="tabular-nums text-right">{r.px.toFixed(2)}</span>
-                <span className={cn("tabular-nums text-right", r.chg >= 0 ? "text-[#62df86]" : "text-[#ff5f57]")}>
-                  {r.chg >= 0 ? "▲" : "▼"} {r.chg >= 0 ? "+" : ""}
-                  {r.chg.toFixed(2)}%
-                </span>
-                <span className="text-right text-white/58">VOL</span>
-                <span className="tabular-nums text-right text-white/58">{Math.abs(r.chg * 12).toFixed(1)}M</span>
-                <span className="text-right text-white/58">RV</span>
-                <span className="tabular-nums text-right text-white/58">
-                  {(0.4 + Math.abs(r.chg) / 6).toFixed(1)}x
-                </span>
-              </div>
-            ))}
+            {rows
+              .concat([
+                { sym: "GOOGL", name: "Alphabet", px: 359.91, chg: -0.36 },
+                { sym: "JPM", name: "JPMorgan", px: 334.47, chg: 0.12 },
+                { sym: "META", name: "Meta", px: 582.9, chg: -4.9 },
+              ])
+              .map((r) => (
+                <div key={r.sym} className="contents">
+                  <span>{r.sym}</span>
+                  <span className="text-white/48">•</span>
+                  <span className="tabular-nums text-right">{r.px.toFixed(2)}</span>
+                  <span
+                    className={cn(
+                      "tabular-nums text-right",
+                      r.chg >= 0 ? "text-[#62df86]" : "text-[#ff5f57]",
+                    )}
+                  >
+                    {r.chg >= 0 ? "▲" : "▼"} {r.chg >= 0 ? "+" : ""}
+                    {r.chg.toFixed(2)}%
+                  </span>
+                  <span className="text-right text-white/58">VOL</span>
+                  <span className="tabular-nums text-right text-white/58">
+                    {Math.abs(r.chg * 12).toFixed(1)}M
+                  </span>
+                  <span className="text-right text-white/58">RV</span>
+                  <span className="tabular-nums text-right text-white/58">
+                    {(0.4 + Math.abs(r.chg) / 6).toFixed(1)}x
+                  </span>
+                </div>
+              ))}
           </div>
           <div className="mt-24 text-right text-[#bd5cff]">ↄ {t.terminal.afterHours}</div>
         </section>
@@ -176,8 +194,7 @@ export function TerminalMock({ className }: { className?: string }) {
           </ul>
           <div className="mt-32 border-t border-white/50 pt-2 text-white/58">
             <span className="text-[#63a4ff]">›</span> {t.terminal.askPlaceholder}
-            <br />
-            ↵ send&nbsp;&nbsp; esc close
+            <br />↵ send&nbsp;&nbsp; esc close
           </div>
         </aside>
       </div>

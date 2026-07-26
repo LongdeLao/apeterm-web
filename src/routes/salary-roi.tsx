@@ -138,7 +138,11 @@ function SalaryRoi() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Metric icon={Euro} label="TUM cost" value={formatEuro(tumCost)} />
               <Metric icon={Euro} label="HKU cost" value={formatEuro(hkuCost)} />
-              <Metric icon={TrendingUp} label="Net return" value={`${model.netAnnualReturn.toFixed(1)}%`} />
+              <Metric
+                icon={TrendingUp}
+                label="Net return"
+                value={`${model.netAnnualReturn.toFixed(1)}%`}
+              />
               <Metric icon={GraduationCap} label="Scenario" value={scenario} />
             </div>
           </div>
@@ -241,10 +245,27 @@ function SalaryRoi() {
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
                 <XAxis dataKey="year" tickLine={false} axisLine={false} />
                 <YAxis tickLine={false} axisLine={false} tickFormatter={compactEuro} width={70} />
-                <Tooltip formatter={(value) => formatEuro(Number(value))} labelFormatter={(year) => `Year ${year}`} />
+                <Tooltip
+                  formatter={(value) => formatEuro(Number(value))}
+                  labelFormatter={(year) => `Year ${year}`}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="tumSalary" name="TUM CS" stroke={programs.tum.color} strokeWidth={3} dot={false} />
-                <Line type="monotone" dataKey="hkuSalary" name="HKU QFin" stroke={programs.hku.color} strokeWidth={3} dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="tumSalary"
+                  name="TUM CS"
+                  stroke={programs.tum.color}
+                  strokeWidth={3}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="hkuSalary"
+                  name="HKU QFin"
+                  stroke={programs.hku.color}
+                  strokeWidth={3}
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartPanel>
@@ -265,10 +286,27 @@ function SalaryRoi() {
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
                 <XAxis dataKey="year" tickLine={false} axisLine={false} />
                 <YAxis tickLine={false} axisLine={false} tickFormatter={compactEuro} width={70} />
-                <Tooltip formatter={(value) => formatEuro(Number(value))} labelFormatter={(year) => `Year ${year}`} />
+                <Tooltip
+                  formatter={(value) => formatEuro(Number(value))}
+                  labelFormatter={(year) => `Year ${year}`}
+                />
                 <Legend />
-                <Area type="monotone" dataKey="tumRoi" name="TUM ROI" stroke={programs.tum.color} fill="url(#tumFill)" strokeWidth={3} />
-                <Area type="monotone" dataKey="hkuRoi" name="HKU ROI" stroke={programs.hku.color} fill="url(#hkuFill)" strokeWidth={3} />
+                <Area
+                  type="monotone"
+                  dataKey="tumRoi"
+                  name="TUM ROI"
+                  stroke={programs.tum.color}
+                  fill="url(#tumFill)"
+                  strokeWidth={3}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="hkuRoi"
+                  name="HKU ROI"
+                  stroke={programs.hku.color}
+                  fill="url(#hkuFill)"
+                  strokeWidth={3}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </ChartPanel>
@@ -277,7 +315,8 @@ function SalaryRoi() {
             <div className="border-b border-slate-200 px-5 py-4">
               <h2 className="text-lg font-semibold">ROI table</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Cumulative gross salary minus program cost. Total includes MSCI World investment value.
+                Cumulative gross salary minus program cost. Total includes MSCI World investment
+                value.
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -295,10 +334,14 @@ function SalaryRoi() {
                 <tbody className="divide-y divide-slate-100">
                   {model.milestoneRows.map((row) => (
                     <tr key={row.year}>
-                      <td className="px-5 py-4 font-medium">{row.year} Year{row.year > 1 ? "s" : ""}</td>
+                      <td className="px-5 py-4 font-medium">
+                        {row.year} Year{row.year > 1 ? "s" : ""}
+                      </td>
                       <td className="px-5 py-4">{formatEuro(row.tum)}</td>
                       <td className="px-5 py-4">{formatEuro(row.hku)}</td>
-                      <td className={`px-5 py-4 font-medium ${row.delta >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                      <td
+                        className={`px-5 py-4 font-medium ${row.delta >= 0 ? "text-emerald-700" : "text-rose-700"}`}
+                      >
                         {formatEuro(row.delta)}
                       </td>
                       <td className="px-5 py-4">{formatEuro(row.tumTotal)}</td>
@@ -316,7 +359,10 @@ function SalaryRoi() {
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
                 <XAxis dataKey="year" tickLine={false} axisLine={false} />
                 <YAxis tickLine={false} axisLine={false} tickFormatter={compactEuro} width={70} />
-                <Tooltip formatter={(value) => formatEuro(Number(value))} labelFormatter={(year) => `Year ${year}`} />
+                <Tooltip
+                  formatter={(value) => formatEuro(Number(value))}
+                  labelFormatter={(year) => `Year ${year}`}
+                />
                 <Area
                   type="monotone"
                   dataKey="investmentValue"
@@ -334,15 +380,7 @@ function SalaryRoi() {
   );
 }
 
-function Metric({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Euro;
-  label: string;
-  value: string;
-}) {
+function Metric({ icon: Icon, label, value }: { icon: typeof Euro; label: string; value: string }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
       <div className="flex items-center gap-2 text-xs font-medium uppercase text-slate-500">
@@ -393,7 +431,13 @@ function SliderField({
   return (
     <div>
       <LabelRow label={label} value={format(value)} />
-      <Slider value={[value]} min={min} max={max} step={step} onValueChange={([next]) => onChange(next)} />
+      <Slider
+        value={[value]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={([next]) => onChange(next)}
+      />
     </div>
   );
 }
@@ -424,10 +468,9 @@ function salaryAtYear(program: ProgramKey, scenario: Scenario, year: number) {
 }
 
 function cumulativeSalary(program: ProgramKey, scenario: Scenario, years: number) {
-  return Array.from({ length: years }, (_, index) => salaryAtYear(program, scenario, index + 1)).reduce(
-    (sum, salary) => sum + salary,
-    0,
-  );
+  return Array.from({ length: years }, (_, index) =>
+    salaryAtYear(program, scenario, index + 1),
+  ).reduce((sum, salary) => sum + salary, 0);
 }
 
 function futureValueMonthly(monthlyAmount: number, annualReturnPercent: number, years: number) {
