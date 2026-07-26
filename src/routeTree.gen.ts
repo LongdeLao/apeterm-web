@@ -19,6 +19,7 @@ import { Route as DesktopRouteImport } from './routes/desktop'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiYahooStreamRouteImport } from './routes/api.yahoo-stream'
+import { Route as ApiSymbolRouteImport } from './routes/api.symbol'
 import { Route as ApiSecRouteImport } from './routes/api.sec'
 import { Route as ApiSearchRouteImport } from './routes/api.search'
 import { Route as ApiNewsRouteImport } from './routes/api.news'
@@ -76,6 +77,11 @@ const ApiYahooStreamRoute = ApiYahooStreamRouteImport.update({
   path: '/api/yahoo-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSymbolRoute = ApiSymbolRouteImport.update({
+  id: '/api/symbol',
+  path: '/api/symbol',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSecRoute = ApiSecRouteImport.update({
   id: '/api/sec',
   path: '/api/sec',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/api/news': typeof ApiNewsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sec': typeof ApiSecRoute
+  '/api/symbol': typeof ApiSymbolRoute
   '/api/yahoo-stream': typeof ApiYahooStreamRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/api/news': typeof ApiNewsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sec': typeof ApiSecRoute
+  '/api/symbol': typeof ApiSymbolRoute
   '/api/yahoo-stream': typeof ApiYahooStreamRoute
 }
 export interface FileRoutesById {
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/api/news': typeof ApiNewsRoute
   '/api/search': typeof ApiSearchRoute
   '/api/sec': typeof ApiSecRoute
+  '/api/symbol': typeof ApiSymbolRoute
   '/api/yahoo-stream': typeof ApiYahooStreamRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/api/news'
     | '/api/search'
     | '/api/sec'
+    | '/api/symbol'
     | '/api/yahoo-stream'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/api/news'
     | '/api/search'
     | '/api/sec'
+    | '/api/symbol'
     | '/api/yahoo-stream'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/api/news'
     | '/api/search'
     | '/api/sec'
+    | '/api/symbol'
     | '/api/yahoo-stream'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   ApiNewsRoute: typeof ApiNewsRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSecRoute: typeof ApiSecRoute
+  ApiSymbolRoute: typeof ApiSymbolRoute
   ApiYahooStreamRoute: typeof ApiYahooStreamRoute
 }
 
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiYahooStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/symbol': {
+      id: '/api/symbol'
+      path: '/api/symbol'
+      fullPath: '/api/symbol'
+      preLoaderRoute: typeof ApiSymbolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/sec': {
       id: '/api/sec'
       path: '/api/sec'
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiNewsRoute: ApiNewsRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiSecRoute: ApiSecRoute,
+  ApiSymbolRoute: ApiSymbolRoute,
   ApiYahooStreamRoute: ApiYahooStreamRoute,
 }
 export const routeTree = rootRouteImport

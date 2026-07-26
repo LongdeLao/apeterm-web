@@ -32,6 +32,30 @@ export type ChartDetail = {
   history: { ts: number; close: number; volume: number }[];
 };
 
+export type CompanyProfile = {
+  name: string;
+  cik: string;
+  industry: string;
+  filerCategory: string;
+  entityType: string;
+  stateOfIncorporation: string;
+  exchanges: string[];
+  location: string;
+  edgarUrl: string;
+};
+
+export type SymbolFiling = {
+  form: string;
+  filedAt: string;
+  reportDate: string;
+  description: string;
+  url: string;
+};
+
+export type SymbolHeadline = { id: string; age: string; title: string; url: string };
+
+export type SymbolNote = { id: string; body: string; starred: boolean; created_at: string };
+
 function number(value: number, compact = false) {
   if (!Number.isFinite(value) || value === 0) return "—";
   return new Intl.NumberFormat("en-US", {
@@ -182,6 +206,11 @@ export function InstrumentChart({
   timeframe,
   onTimeframe,
   onClose,
+  profile,
+  filings = [],
+  headlines = [],
+  notes = [],
+  extrasLoading = false,
 }: {
   instrument: ChartInstrument;
   detail?: ChartDetail;
@@ -190,12 +219,65 @@ export function InstrumentChart({
   timeframe: ChartTimeframe;
   onTimeframe: (timeframe: ChartTimeframe) => void;
   onClose: () => void;
+  profile?: CompanyProfile | null;
+  filings?: SymbolFiling[];
+  headlines?: SymbolHeadline[];
+  notes?: SymbolNote[];
+  extrasLoading?: boolean;
 }) {
   const first = detail?.history[0]?.close ?? 0;
   const last = detail?.history.at(-1)?.close ?? 0;
   const periodReturn = first ? ((last - first) / first) * 100 : 0;
   const periodHigh = detail ? Math.max(...detail.history.map((point) => point.close)) : 0;
   const periodLow = detail ? Math.min(...detail.history.map((point) => point.close)) : 0;
+
+  /** Derived read of where the price sits, rather than restating the raw quote. */
+  const context: [string, string, "up" | "down" | "flat"][] = [];
+  if (detail) {
+    const belowHigh = detail.week52High
+      ? ((detail.week52High - detail.price) / detail.week52High) * 100
+      : 0;
+    const aboveLow = detail.week52Low
+      ? ((detail.price - detail.week52Low) / detail.week52Low) * 100
+      : 0;
+    const range = detail.week52High - detail.week52Low;
+    const position = range > 0 ? ((detail.price - detail.week52Low) / range) * 100 : 0;
+    const relativeVolume = detail.averageVolume > 0 ? detail.volume / detail.averageVolume : 0;
+    const dayRange = detail.dayHigh - detail.dayLow;
+    const dayPosition = dayRange > 0 ? ((detail.price - detail.dayLow) / dayRange) * 100 : 0;
+    if (detail.week52High)
+      context.push(["Off 52W high", `−${belowHigh.toFixed(1)}%`, belowHigh > 20 ? "down" : "flat"]);
+    if (detail.week52Low)
+      context.push(["Above 52W low", `+${aboveLow.toFixed(1)}%`, aboveLow > 0 ? "up" : "flat"]);
+    if (range > 0)
+      context.push([
+        "52W position",
+        `${position.toFixed(0)}% of range`,
+        position > 70 ? "up" : position < 30 ? "down" : "flat",
+      ]);
+    if (dayRange > 0) context.push(["Day position", `${dayPosition.toFixed(0)}% of range`, "flat"]);
+    if (relativeVolume)
+      context.push([
+        "Relative volume",
+        `${relativeVolume.toFixed(2)}×`,
+        relativeVolume > 1.5 ? "up" : relativeVolume < 0.6 ? "down" : "flat",
+      ]);
+    if (detail.history.length > 1)
+      context.push([
+        `${timeframe.toUpperCase()} return`,
+        `${periodReturn >= 0 ? "+" : ""}${periodReturn.toFixed(1)}%`,
+        periodReturn >= 0 ? "up" : "down",
+      ]);
+    if (detail.marketTime)
+      context.push([
+        "Last tick",
+        new Date(detail.marketTime * 1000).toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        "flat",
+      ]);
+  }
   const stats = detail
     ? [
         ["Prev Close", number(detail.previousClose)],
@@ -304,18 +386,126 @@ export function InstrumentChart({
             </div>
           </Section>
           <Section title="Company">
-            <p className="text-[#777]">
-              Live company profile data will appear here when available.
-            </p>
+            {profile ? (
+              <div className="space-y-1">
+                <p className="truncate font-bold" title={profile.name}>
+                  {profile.name}
+                </p>
+                {[
+                  ["Industry", profile.industry],
+                  ["Location", profile.location],
+                  ["Incorporated", profile.stateOfIncorporation],
+                  ["Filer", profile.filerCategory],
+                  ["CIK", profile.cik.replace(/^0+/, "")],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-3">
+                    <span className="shrink-0 text-[#777]">{label}</span>
+                    <span className="truncate text-right" title={value}>
+                      {value || "—"}
+                    </span>
+                  </div>
+                ))}
+                <a
+                  href={profile.edgarUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-block text-[#34d399] hover:underline"
+                >
+                  EDGAR filings ↗
+                </a>
+              </div>
+            ) : (
+              <p className="text-[#777]">
+                {extrasLoading ? "○ loading..." : "No SEC filer mapped"}
+              </p>
+            )}
           </Section>
           <Section title="Market Context">
-            <p className="text-[#777]">Live quote and price history loaded from the market feed.</p>
+            {context.length ? (
+              <div className="space-y-1">
+                {context.map(([label, value, tone]) => (
+                  <div key={label} className="flex justify-between gap-3">
+                    <span className="text-[#777]">{label}</span>
+                    <span
+                      className={
+                        tone === "up" ? "text-[#34d399]" : tone === "down" ? "text-[#f87171]" : ""
+                      }
+                    >
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#777]">Waiting for price history</p>
+            )}
+          </Section>
+          <Section title="Filings">
+            {filings.length ? (
+              <div className="space-y-1">
+                {filings.slice(0, 6).map((filing) => (
+                  <a
+                    key={`${filing.form}-${filing.filedAt}-${filing.url}`}
+                    href={filing.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex gap-2 hover:bg-[#1a1a1a]"
+                  >
+                    <span className="w-12 shrink-0 font-bold text-[#d0d0d0]">{filing.form}</span>
+                    <span className="w-16 shrink-0 text-[#777]">{filing.filedAt}</span>
+                    <span className="truncate text-[#909090]" title={filing.description}>
+                      {filing.description || "—"}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#777]">{extrasLoading ? "○ loading..." : "No recent filings"}</p>
+            )}
           </Section>
           <Section title="Headlines">
-            <p className="text-[#777]">No related headlines loaded</p>
+            {headlines.length ? (
+              <div className="space-y-1">
+                {headlines.slice(0, 6).map((item) => (
+                  <a
+                    key={item.id || item.title}
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex gap-2 hover:bg-[#1a1a1a]"
+                  >
+                    <span className="w-8 shrink-0 text-[#777]">{item.age}</span>
+                    <span className="line-clamp-2 text-[#d0d0d0]">{item.title}</span>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#777]">
+                {extrasLoading ? "○ loading..." : "No related headlines"}
+              </p>
+            )}
           </Section>
           <Section title="Notes">
-            <p className="text-[#777]">No notes</p>
+            {notes.length ? (
+              <div className="space-y-1">
+                {notes.slice(0, 6).map((note) => (
+                  <div key={note.id} className="flex gap-2">
+                    <span className="w-3 shrink-0 text-[#e8b13a]">{note.starred ? "★" : " "}</span>
+                    <span className="w-16 shrink-0 text-[#777]">
+                      {new Date(note.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                    <span className="text-[#d0d0d0]">{note.body}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#777]">
+                No notes on {instrument.symbol} — ask the agent to write one
+              </p>
+            )}
           </Section>
         </aside>
       </main>

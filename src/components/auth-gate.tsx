@@ -380,6 +380,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       session
         ? {
             accessToken: session.access_token,
+            userId: session.user.id,
             initialSymbols: symbols,
             userEmail: session.user.email ?? "account",
             saveWatchlist: async (nextSymbols) => {

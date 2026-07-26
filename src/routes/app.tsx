@@ -8,7 +8,30 @@ import {
   chartTimeframes,
   type ChartDetail,
   type ChartTimeframe,
+  type CompanyProfile,
+  type SymbolFiling,
+  type SymbolHeadline,
 } from "@/components/instrument-chart";
+import type { ClientAction } from "@/lib/agent-tools";
+import {
+  cancelAlert,
+  deleteGroup,
+  deleteNote,
+  insertAlert,
+  insertGroup,
+  insertNote,
+  listAlerts,
+  listGroups,
+  listLayouts,
+  listNotes,
+  updateGroup,
+  updateNote,
+  upsertLayout,
+  type Alert,
+  type Layout,
+  type Note,
+  type WatchlistGroup,
+} from "@/lib/workspace-store";
 
 export const Route = createFileRoute("/app")({
   head: () => ({
@@ -75,11 +98,10 @@ type WebPreferences = {
   highContrast: boolean;
 };
 type AgentMessage = { role: "user" | "assistant"; content: string };
-type AgentAction = {
-  type: "add_to_watchlist" | "remove_from_watchlist";
-  symbol: string;
-};
-type AgentData = { reply: string; model: string; actions?: AgentAction[] };
+type AgentData = { reply: string; model: string; actions?: ClientAction[] };
+type SymbolExtras = { profile: CompanyProfile | null; filings: SymbolFiling[] };
+/** One reversible step, pushed before the agent mutates anything. */
+type UndoStep = { label: string; revert: () => void | Promise<void> };
 
 const newsCategories = ["all", "watchlist", "macro", "reddit", "crypto"];
 const defaultStockOrder = [
@@ -378,6 +400,13 @@ export function ApeTermWeb() {
   const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframe>("3m");
   const [preferences, setPreferences] = useState<WebPreferences>(defaultPreferences);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const [userNotes, setUserNotes] = useState<Note[]>([]);
+  const [groups, setGroups] = useState<WatchlistGroup[]>([]);
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [layouts, setLayouts] = useState<Layout[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [agentToast, setAgentToast] = useState("");
+  const undoStack = useRef<UndoStep[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const updatePreferences = (patch: Partial<WebPreferences>) =>
@@ -523,11 +552,95 @@ export function ApeTermWeb() {
     refetchInterval: 15_000,
     retry: 1,
   });
+  // Company profile and EDGAR filings for the open instrument. Separate from the
+  // chart query so a slow SEC round-trip never delays the price.
+  const symbolExtras = useQuery({
+    queryKey: ["symbol-extras", selectedInstrument?.symbol],
+    queryFn: () =>
+      getJson<SymbolExtras>(
+        `/api/symbol?symbol=${encodeURIComponent(selectedInstrument?.symbol ?? "")}`,
+      ),
+    enabled: typeof window !== "undefined" && Boolean(selectedInstrument),
+    staleTime: 900_000,
+    retry: 1,
+  });
+  const symbolNews = useQuery({
+    queryKey: ["symbol-news", selectedInstrument?.symbol],
+    queryFn: () =>
+      getJson<NewsData>(
+        `/api/news?symbol=${encodeURIComponent(selectedInstrument?.symbol ?? "")}&name=${encodeURIComponent(
+          selectedInstrument?.name ?? "",
+        )}`,
+      ),
+    enabled: typeof window !== "undefined" && Boolean(selectedInstrument),
+    staleTime: 300_000,
+    retry: 1,
+  });
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), 180);
     return () => window.clearTimeout(timer);
   }, [searchQuery]);
+
+  // Stored workspace data. All four reads are fail-soft: if the migration has not
+  // been applied they resolve to empty arrays and the panels stay usable.
+  const userId = auth?.userId;
+  useEffect(() => {
+    if (!userId) return;
+    let current = true;
+    void Promise.all([
+      listNotes(userId),
+      listGroups(userId),
+      listLayouts(userId),
+      listAlerts(userId),
+    ]).then(([notesRows, groupRows, layoutRows, alertRows]) => {
+      if (!current) return;
+      setUserNotes(notesRows);
+      setGroups(groupRows);
+      setLayouts(layoutRows);
+      setAlerts(alertRows);
+    });
+    return () => {
+      current = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!agentToast) return;
+    const timer = window.setTimeout(() => setAgentToast(""), 6_000);
+    return () => window.clearTimeout(timer);
+  }, [agentToast]);
+
+  // Price alerts are evaluated against each market refresh while the tab is open.
+  // Filing alerts and scheduled digests need a server-side job and stay dormant.
+  const quotes = market.data?.stocks;
+  useEffect(() => {
+    if (!quotes?.length || !alerts.length) return;
+    for (const alert of alerts) {
+      if (alert.triggered_at || !alert.symbol || alert.threshold === null) continue;
+      const quote = quotes.find((row) => row.symbol === alert.symbol);
+      if (!quote) continue;
+      const hit =
+        alert.kind === "price_above"
+          ? quote.price >= alert.threshold
+          : alert.kind === "price_below"
+            ? quote.price <= alert.threshold
+            : alert.kind === "percent_move"
+              ? Math.abs(quote.changePercent) >= alert.threshold
+              : false;
+      if (!hit) continue;
+      setAgentToast(
+        `${alert.symbol} ${alert.kind.replace("_", " ")} ${alert.threshold} — now ${quote.price}`,
+      );
+      setAlerts((current) =>
+        current.map((row) =>
+          row.id === alert.id ? { ...row, triggered_at: new Date().toISOString() } : row,
+        ),
+      );
+      void cancelAlert(alert.id);
+      break;
+    }
+  }, [quotes, alerts]);
 
   const panels: Panel[] = useMemo(() => ["news", "watchlist", "sec", "notes"], []);
   const searchResults = useMemo(() => {
@@ -570,7 +683,22 @@ export function ApeTermWeb() {
   const activeSecFeed = secTab === 0 && liveInstitutions ? liveInstitutions : secFeeds[secTab];
   const safeSecRow = secRow % activeSecFeed.length;
   const selectedSecEntity = secTab === 0 ? sec.data?.entities[safeSecRow] : undefined;
-  const activeNotes = notes.filter((row) => {
+  // Real notes once the user has any; the seeded rows stay as placeholder content
+  // until then so the panel is never blank.
+  const noteRows: readonly (readonly [string, string, string, string])[] = userNotes.length
+    ? userNotes.map(
+        (note) =>
+          [
+            note.starred ? "★" : " ",
+            new Date(note.created_at)
+              .toLocaleDateString("en-US", { month: "short", day: "numeric" })
+              .toUpperCase(),
+            note.symbol || "—",
+            note.body,
+          ] as const,
+      )
+    : notes;
+  const activeNotes = noteRows.filter((row) => {
     if (notesTab === 1) return row[2] !== "—";
     if (notesTab === 2) return row[2] === "—";
     if (notesTab === 3) return row[0] === "★";
@@ -657,6 +785,313 @@ export function ApeTermWeb() {
     if (overlay === "search" && !selectedInstrument) searchRef.current?.focus();
   }, [overlay, selectedInstrument]);
 
+  const validSymbol = (value: unknown) => {
+    const symbol = typeof value === "string" ? value.trim().toUpperCase() : "";
+    return /^[A-Z]{1,6}(?:-[A-Z]{1,4})?$/.test(symbol) ? symbol : "";
+  };
+  const pushUndo = (label: string, revert: UndoStep["revert"]) => {
+    undoStack.current = [...undoStack.current.slice(-9), { label, revert }];
+  };
+  /** Snapshot of the watchlist, so any mutation can be reverted as one step. */
+  const snapshotWatchlist = (label: string) => {
+    const previous = stockOrder;
+    pushUndo(label, () => setStockOrder(previous));
+  };
+
+  /** Applies one agent tool call to the workspace. */
+  const applyAgentAction = async (action: ClientAction) => {
+    switch (action.type) {
+      case "add_to_watchlist": {
+        const symbol = validSymbol(action.symbol);
+        if (!symbol) return;
+        snapshotWatchlist(`add ${symbol}`);
+        setStockOrder((current) =>
+          current.includes(symbol) || current.length >= 25 ? current : [...current, symbol],
+        );
+        return;
+      }
+      case "remove_from_watchlist": {
+        const symbol = validSymbol(action.symbol);
+        if (!symbol) return;
+        snapshotWatchlist(`remove ${symbol}`);
+        setStockOrder((current) => current.filter((item) => item !== symbol));
+        return;
+      }
+      case "add_symbols": {
+        const symbols = (action.symbols ?? []).map(validSymbol).filter(Boolean).slice(0, 20);
+        if (!symbols.length) return;
+        snapshotWatchlist(`add ${symbols.length} symbols`);
+        setStockOrder((current) => {
+          const merged = [...current];
+          for (const symbol of symbols)
+            if (!merged.includes(symbol) && merged.length < 25) merged.push(symbol);
+          return merged;
+        });
+        return;
+      }
+      case "sort_watchlist": {
+        snapshotWatchlist("sort watchlist");
+        const descending = action.descending ?? true;
+        const quoteFor = (symbol: string) =>
+          market.data?.stocks.find((quote) => quote.symbol === symbol);
+        setStockOrder((current) =>
+          [...current].sort((left, right) => {
+            const a = quoteFor(left);
+            const b = quoteFor(right);
+            let delta = 0;
+            if (action.by === "symbol") delta = left.localeCompare(right);
+            else if (action.by === "price") delta = (a?.price ?? 0) - (b?.price ?? 0);
+            else if (action.by === "volume") delta = (a?.volume ?? 0) - (b?.volume ?? 0);
+            else delta = (a?.changePercent ?? 0) - (b?.changePercent ?? 0);
+            return descending && action.by !== "symbol" ? -delta : delta;
+          }),
+        );
+        return;
+      }
+      case "pin_symbol": {
+        const symbol = validSymbol(action.symbol);
+        if (!symbol) return;
+        snapshotWatchlist(`pin ${symbol}`);
+        setStockOrder((current) => [symbol, ...current.filter((item) => item !== symbol)]);
+        return;
+      }
+      case "create_watchlist": {
+        if (!userId || !action.name) return;
+        const symbols = (action.symbols ?? []).map(validSymbol).filter(Boolean).slice(0, 50);
+        const created = await insertGroup(userId, action.name, symbols, groups.length);
+        if (!created.length) {
+          setAgentToast("Named watchlists need the pending database migration.");
+          return;
+        }
+        setGroups((current) => [...current, ...created]);
+        pushUndo(`create list ${action.name}`, async () => {
+          await deleteGroup(created[0].id);
+          setGroups((current) => current.filter((group) => group.id !== created[0].id));
+        });
+        return;
+      }
+      case "switch_watchlist": {
+        const group = groups.find((item) => item.name.toLowerCase() === action.name?.toLowerCase());
+        if (!group) {
+          setAgentToast(`No watchlist named "${action.name}".`);
+          return;
+        }
+        snapshotWatchlist("switch list");
+        const previousGroup = activeGroup;
+        setActiveGroup(group.id);
+        setStockOrder(group.symbols);
+        pushUndo(`switch from ${group.name}`, () => setActiveGroup(previousGroup));
+        return;
+      }
+      case "rename_watchlist": {
+        const group = groups.find((item) => item.name.toLowerCase() === action.name?.toLowerCase());
+        if (!group || !action.to) return;
+        await updateGroup(group.id, { name: action.to });
+        setGroups((current) =>
+          current.map((item) => (item.id === group.id ? { ...item, name: action.to } : item)),
+        );
+        return;
+      }
+      case "delete_watchlist": {
+        const group = groups.find((item) => item.name.toLowerCase() === action.name?.toLowerCase());
+        if (!group) return;
+        await deleteGroup(group.id);
+        setGroups((current) => current.filter((item) => item.id !== group.id));
+        if (activeGroup === group.id) setActiveGroup(null);
+        return;
+      }
+
+      case "open_instrument": {
+        const symbol = validSymbol(action.symbol);
+        if (!symbol) return;
+        const known = commonSearchResults.find((result) => result.symbol === symbol);
+        setSelectedInstrument(known ?? { symbol, name: symbol, type: "EQUITY", exchange: "—" });
+        return;
+      }
+      case "set_timeframe": {
+        if (chartTimeframes.includes(action.timeframe)) setChartTimeframe(action.timeframe);
+        return;
+      }
+      case "focus_panel": {
+        if (panels.includes(action.panel)) setFocused(action.panel);
+        return;
+      }
+      case "set_news_category": {
+        const index = newsCategories.indexOf(action.category);
+        if (index >= 0) {
+          setNewsTab(index);
+          setNewsRow(0);
+        }
+        return;
+      }
+      case "set_sec_feed": {
+        const index = ["institutions", "executives", "congress"].indexOf(action.feed);
+        if (index >= 0) {
+          setSecTab(index);
+          setSecRow(0);
+        }
+        return;
+      }
+      case "open_overlay": {
+        setOverlay(action.overlay === "none" ? null : (action.overlay as Overlay));
+        return;
+      }
+
+      case "create_note": {
+        if (!userId || !action.body?.trim()) return;
+        const created = await insertNote(userId, {
+          body: action.body,
+          symbol: validSymbol(action.symbol) || selectedInstrument?.symbol || "—",
+          starred: action.starred,
+        });
+        if (!created.length) {
+          setAgentToast("Notes need the pending database migration.");
+          return;
+        }
+        setUserNotes((current) => [...created, ...current]);
+        pushUndo("write note", async () => {
+          await deleteNote(created[0].id);
+          setUserNotes((current) => current.filter((note) => note.id !== created[0].id));
+        });
+        return;
+      }
+      case "star_note": {
+        const starred = action.starred ?? true;
+        const updated = await updateNote(action.id, { starred });
+        if (updated.length)
+          setUserNotes((current) =>
+            current.map((note) => (note.id === action.id ? { ...note, starred } : note)),
+          );
+        return;
+      }
+      case "edit_note": {
+        const previous = userNotes.find((note) => note.id === action.id);
+        const updated = await updateNote(action.id, { body: action.body });
+        if (!updated.length) return;
+        setUserNotes((current) =>
+          current.map((note) => (note.id === action.id ? { ...note, body: action.body } : note)),
+        );
+        if (previous)
+          pushUndo("edit note", async () => {
+            await updateNote(previous.id, { body: previous.body });
+            setUserNotes((current) =>
+              current.map((note) => (note.id === previous.id ? previous : note)),
+            );
+          });
+        return;
+      }
+      case "delete_note": {
+        const previous = userNotes.find((note) => note.id === action.id);
+        await deleteNote(action.id);
+        setUserNotes((current) => current.filter((note) => note.id !== action.id));
+        if (previous)
+          pushUndo("delete note", async () => {
+            const restored = await insertNote(userId ?? "", {
+              body: previous.body,
+              symbol: previous.symbol,
+              starred: previous.starred,
+            });
+            if (restored.length) setUserNotes((current) => [...restored, ...current]);
+          });
+        return;
+      }
+
+      case "set_preference": {
+        const previous = preferences;
+        const value =
+          action.key === "highContrast"
+            ? action.value === true || action.value === "true"
+            : String(action.value);
+        updatePreferences({ [action.key]: value } as Partial<WebPreferences>);
+        pushUndo(`preference ${action.key}`, () => setPreferences(previous));
+        return;
+      }
+      case "save_layout": {
+        if (!userId || !action.name) return;
+        const state = {
+          stockOrder,
+          newsTab,
+          watchTab,
+          secTab,
+          notesTab,
+          focused,
+          agentOpen,
+          chartTimeframe,
+        };
+        const saved = await upsertLayout(userId, action.name, state);
+        if (!saved.length) {
+          setAgentToast("Saved layouts need the pending database migration.");
+          return;
+        }
+        setLayouts((current) => [
+          ...current.filter((layout) => layout.name !== action.name),
+          ...saved,
+        ]);
+        return;
+      }
+      case "load_layout": {
+        const layout = layouts.find(
+          (item) => item.name.toLowerCase() === action.name?.toLowerCase(),
+        );
+        if (!layout) {
+          setAgentToast(`No layout named "${action.name}".`);
+          return;
+        }
+        const state = layout.state as Record<string, unknown>;
+        snapshotWatchlist(`load layout ${layout.name}`);
+        if (Array.isArray(state.stockOrder)) setStockOrder(state.stockOrder as string[]);
+        if (typeof state.newsTab === "number") setNewsTab(state.newsTab);
+        if (typeof state.watchTab === "number") setWatchTab(state.watchTab);
+        if (typeof state.secTab === "number") setSecTab(state.secTab);
+        if (typeof state.notesTab === "number") setNotesTab(state.notesTab);
+        if (typeof state.focused === "string") setFocused(state.focused as Panel);
+        if (typeof state.agentOpen === "boolean") setAgentOpen(state.agentOpen);
+        if (typeof state.chartTimeframe === "string")
+          setChartTimeframe(state.chartTimeframe as ChartTimeframe);
+        return;
+      }
+      case "undo_last_action": {
+        const step = undoStack.current.pop();
+        if (!step) {
+          setAgentToast("Nothing to undo.");
+          return;
+        }
+        await step.revert();
+        setAgentToast(`Undid: ${step.label}`);
+        return;
+      }
+
+      case "create_alert": {
+        if (!userId) return;
+        const created = await insertAlert(userId, {
+          kind: action.kind,
+          symbol: validSymbol(action.symbol) || undefined,
+          filer: action.filer,
+          threshold: action.threshold,
+          schedule: action.schedule,
+          note: action.note,
+        });
+        if (!created.length) {
+          setAgentToast("Alerts need the pending database migration.");
+          return;
+        }
+        setAlerts((current) => [...current, ...created]);
+        pushUndo("create alert", async () => {
+          await cancelAlert(created[0].id);
+          setAlerts((current) => current.filter((alert) => alert.id !== created[0].id));
+        });
+        return;
+      }
+      case "cancel_alert": {
+        await cancelAlert(action.id);
+        setAlerts((current) => current.filter((alert) => alert.id !== action.id));
+        return;
+      }
+      default:
+        return;
+    }
+  };
+
   const submitAgent = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const content = agentInput.trim();
@@ -676,6 +1111,21 @@ export function ApeTermWeb() {
           .map((item) => `${item[2]}: ${item[3]}`)
           .join(" | ")}`,
         `SEC focus: ${activeSecFeed[safeSecRow]?.[0] ?? "none"}`,
+        `Focused panel: ${focused}. News filter: ${newsCategories[newsTab]}. SEC feed: ${["institutions", "executives", "congress"][secTab]}.`,
+        `Open instrument: ${selectedInstrument?.symbol ?? "none"} (timeframe ${chartTimeframe})`,
+        `Focused row — news: ${activeHeadlines[newsRow % Math.max(1, activeHeadlines.length)]?.[3] ?? "none"}`,
+        `Saved watchlists: ${groups.length ? groups.map((group) => group.name).join(", ") : "none"}`,
+        `Saved layouts: ${layouts.length ? layouts.map((layout) => layout.name).join(", ") : "none"}`,
+        `Active alerts: ${alerts.length}`,
+        `Notes stored: ${userNotes.length}${
+          userNotes.length
+            ? ` — most recent: ${userNotes
+                .slice(0, 3)
+                .map((note) => `[${note.id}] ${note.symbol}: ${note.body.slice(0, 80)}`)
+                .join(" | ")}`
+            : ""
+        }`,
+        `Undo available: ${undoStack.current.length ? undoStack.current.at(-1)?.label : "nothing"}`,
       ].join("\n");
       const response = await fetch("/api/agent", {
         method: "POST",
@@ -687,17 +1137,7 @@ export function ApeTermWeb() {
       });
       const data = (await response.json()) as AgentData & { error?: string };
       if (!response.ok) throw new Error(data.error ?? `Agent ${response.status}`);
-      for (const action of data.actions ?? []) {
-        const symbol = action.symbol.trim().toUpperCase();
-        if (!/^[A-Z]{1,6}(?:-[A-Z])?$/.test(symbol)) continue;
-        if (action.type === "add_to_watchlist") {
-          setStockOrder((current) =>
-            current.includes(symbol) || current.length >= 25 ? current : [...current, symbol],
-          );
-        } else {
-          setStockOrder((current) => current.filter((item) => item !== symbol));
-        }
-      }
+      for (const action of data.actions ?? []) await applyAgentAction(action);
       setAgentMessages((messages) => [...messages, { role: "assistant", content: data.reply }]);
     } catch (error) {
       setAgentError(error instanceof Error ? error.message : "Agent unavailable");
@@ -716,6 +1156,11 @@ export function ApeTermWeb() {
         timeframe={chartTimeframe}
         onTimeframe={setChartTimeframe}
         onClose={() => setSelectedInstrument(null)}
+        profile={symbolExtras.data?.profile ?? null}
+        filings={symbolExtras.data?.filings ?? []}
+        headlines={(symbolNews.data?.items ?? []) as SymbolHeadline[]}
+        notes={userNotes.filter((note) => note.symbol === selectedInstrument.symbol)}
+        extrasLoading={symbolExtras.isPending || symbolNews.isPending}
       />
     );
   }
@@ -1024,6 +1469,9 @@ export function ApeTermWeb() {
       </div>
 
       <footer className="h-[22px] overflow-hidden whitespace-nowrap bg-[#0c0c0c] px-1 text-[11px] leading-[22px] text-[#777]">
+        {agentToast && (
+          <span className="mr-3 bg-[#e8b13a] px-1 font-bold text-[#0c0c0c]">{agentToast}</span>
+        )}
         [a] agent&nbsp;&nbsp; [/] search&nbsp;&nbsp; [,] settings&nbsp;&nbsp; [E]{" "}
         {preferences.experience}&nbsp;&nbsp; [ctrl+p] spotlight&nbsp;&nbsp; [?] help&nbsp;&nbsp; [q]
         quit

@@ -71,8 +71,15 @@ export const Route = createFileRoute("/api/news")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const category = new URL(request.url).searchParams.get("category") ?? "all";
-        const query = queries[category] ?? queries.all;
+        const params = new URL(request.url).searchParams;
+        const category = params.get("category") ?? "all";
+        // A symbol overrides the category, so the instrument page and the agent can
+        // both ask for headlines about one company.
+        const symbol = params.get("symbol")?.trim().toUpperCase() ?? "";
+        const name = params.get("name")?.trim() ?? "";
+        const query = /^[A-Z]{1,6}(?:-[A-Z]{1,4})?$/.test(symbol)
+          ? `${name ? `"${name.slice(0, 60)}" OR ` : ""}${symbol} stock when:7d`
+          : (queries[category] ?? queries.all);
         const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
         const response = await fetch(url, {
           signal: AbortSignal.timeout(10_000),
@@ -95,7 +102,7 @@ export const Route = createFileRoute("/api/news")({
             id: tag(match[1], "guid") || tag(match[1], "link"),
             age: age(publishedAt),
             source,
-            symbol: inferSymbol(title, category),
+            symbol: symbol || inferSymbol(title, category),
             title,
             url: tag(match[1], "link"),
             publishedAt,
