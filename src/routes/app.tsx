@@ -61,6 +61,8 @@ type SecData = { entities: SecEntity[]; errors: string[]; updatedAt: string };
 type SearchResult = { symbol: string; name: string; type: string; exchange: string };
 type SearchData = { results: SearchResult[]; error?: string };
 type InstrumentDetail = ChartDetail;
+type AgentMessage = { role: "user" | "assistant"; content: string };
+type AgentData = { reply: string; model: string };
 
 const newsCategories = ["all", "watchlist", "macro", "reddit", "crypto"];
 const stockOrder = ["SPY", "QQQ", "NVDA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "TSLA", "JPM"];
@@ -276,7 +278,9 @@ export function ApeTermWeb() {
   const [agentOpen, setAgentOpen] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [agentInput, setAgentInput] = useState("");
-  const [agentMessages, setAgentMessages] = useState<string[]>([]);
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentError, setAgentError] = useState("");
   const [spotlightRow, setSpotlightRow] = useState(0);
   const [stockStream, setStockStream] = useState<Record<string, Quote>>({});
   const [cryptoStream, setCryptoStream] = useState<Record<string, Quote>>({});
@@ -496,11 +500,37 @@ export function ApeTermWeb() {
     if (overlay === "search" && !selectedInstrument) searchRef.current?.focus();
   }, [overlay, selectedInstrument]);
 
-  const submitAgent = (event: FormEvent<HTMLFormElement>) => {
+  const submitAgent = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!agentInput.trim()) return;
-    setAgentMessages((messages) => [...messages, agentInput.trim()]);
+    const content = agentInput.trim();
+    if (!content || agentLoading) return;
+    const nextMessages = [...agentMessages, { role: "user", content } satisfies AgentMessage];
+    setAgentMessages(nextMessages);
     setAgentInput("");
+    setAgentError("");
+    setAgentLoading(true);
+    try {
+      const context = [
+        `Watchlist: ${activeQuotes.map((quote) => `${quote[0]} ${quote[1]} ${quote[2]}`).join(", ")}`,
+        `Latest news: ${activeHeadlines
+          .slice(0, 8)
+          .map((item) => `${item[2]}: ${item[3]}`)
+          .join(" | ")}`,
+        `SEC focus: ${activeSecFeed[safeSecRow]?.[0] ?? "none"}`,
+      ].join("\n");
+      const response = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: nextMessages, context }),
+      });
+      const data = (await response.json()) as AgentData & { error?: string };
+      if (!response.ok) throw new Error(data.error ?? `Agent ${response.status}`);
+      setAgentMessages((messages) => [...messages, { role: "assistant", content: data.reply }]);
+    } catch (error) {
+      setAgentError(error instanceof Error ? error.message : "Agent unavailable");
+    } finally {
+      setAgentLoading(false);
+    }
   };
 
   if (selectedInstrument) {
@@ -780,17 +810,20 @@ export function ApeTermWeb() {
                   </div>
                 </>
               ) : (
-                agentMessages.map((message) => (
-                  <div key={message} className="mb-4">
-                    <p className="text-[#909090]">you</p>
-                    <p className="mt-1">{message}</p>
-                    <p className="mt-3 text-[#909090]">ape</p>
-                    <p className="mt-1">
-                      I’m using the current dashboard context for this browser prototype.
-                    </p>
+                agentMessages.map((message, index) => (
+                  <div key={`${message.role}-${index}`} className="mb-4">
+                    <p className="text-[#909090]">{message.role === "user" ? "you" : "ape"}</p>
+                    <p className="mt-1 whitespace-pre-wrap">{message.content}</p>
                   </div>
                 ))
               )}
+              {agentLoading && (
+                <p className="mb-4 text-[#909090]">
+                  ape
+                  <br />○ thinking...
+                </p>
+              )}
+              {agentError && <p className="mb-4 text-[#f87171]">! {agentError}</p>}
             </div>
             <form onSubmit={submitAgent} className="border-t border-[#909090] pt-1">
               <label htmlFor="agent" className="sr-only">
@@ -801,6 +834,7 @@ export function ApeTermWeb() {
                 <input
                   id="agent"
                   value={agentInput}
+                  disabled={agentLoading}
                   onChange={(event) => setAgentInput(event.target.value)}
                   className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#909090]"
                   placeholder="Ask anything..."
