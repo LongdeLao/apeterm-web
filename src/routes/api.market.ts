@@ -65,9 +65,16 @@ async function cryptoQuote(symbol: string): Promise<Quote> {
 export const Route = createFileRoute("/api/market")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        const requestedStocks = (new URL(request.url).searchParams.get("symbols") ?? "")
+          .split(",")
+          .map((symbol) => symbol.trim().toUpperCase())
+          .filter((symbol) => /^[A-Z]{1,6}(?:-[A-Z])?$/.test(symbol))
+          .filter((symbol, index, all) => all.indexOf(symbol) === index)
+          .slice(0, 25);
+        const stockSymbols = requestedStocks.length ? requestedStocks : STOCKS;
         const [stocks, crypto] = await Promise.all([
-          Promise.allSettled(STOCKS.map(stockQuote)),
+          Promise.allSettled(stockSymbols.map(stockQuote)),
           Promise.allSettled(CRYPTO.map(cryptoQuote)),
         ]);
         const fulfilled = (results: PromiseSettledResult<Quote>[]) =>
