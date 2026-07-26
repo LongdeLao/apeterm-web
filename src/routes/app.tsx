@@ -62,10 +62,27 @@ type SearchResult = { symbol: string; name: string; type: string; exchange: stri
 type SearchData = { results: SearchResult[]; error?: string };
 type InstrumentDetail = ChartDetail;
 type AgentMessage = { role: "user" | "assistant"; content: string };
-type AgentData = { reply: string; model: string };
+type AgentAction = {
+  type: "add_to_watchlist" | "remove_from_watchlist";
+  symbol: string;
+};
+type AgentData = { reply: string; model: string; actions?: AgentAction[] };
 
 const newsCategories = ["all", "watchlist", "macro", "reddit", "crypto"];
-const stockOrder = ["SPY", "QQQ", "NVDA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "TSLA", "JPM"];
+const defaultStockOrder = [
+  "SPY",
+  "QQQ",
+  "NVDA",
+  "AAPL",
+  "MSFT",
+  "AMZN",
+  "META",
+  "GOOGL",
+  "TSLA",
+  "JPM",
+  "NFLX",
+];
+const watchlistStorageKey = "apeterm:watchlist";
 const cryptoOrder = ["BTC", "ETH", "SOL", "XRP", "BNB", "DOGE", "ADA", "AVAX"];
 
 async function getJson<T>(url: string): Promise<T> {
@@ -281,6 +298,8 @@ export function ApeTermWeb() {
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentError, setAgentError] = useState("");
+  const [stockOrder, setStockOrder] = useState(defaultStockOrder);
+  const [watchlistLoaded, setWatchlistLoaded] = useState(false);
   const [spotlightRow, setSpotlightRow] = useState(0);
   const [stockStream, setStockStream] = useState<Record<string, Quote>>({});
   const [cryptoStream, setCryptoStream] = useState<Record<string, Quote>>({});
@@ -294,12 +313,38 @@ export function ApeTermWeb() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const market = useQuery({
-    queryKey: ["market"],
-    queryFn: () => getJson<MarketData>("/api/market"),
+    queryKey: ["market", stockOrder.join(",")],
+    queryFn: () =>
+      getJson<MarketData>(`/api/market?symbols=${encodeURIComponent(stockOrder.join(","))}`),
     enabled: typeof window !== "undefined",
     refetchInterval: 60_000,
     retry: 1,
   });
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(watchlistStorageKey) ?? "null");
+      if (Array.isArray(saved)) {
+        const symbols = saved
+          .filter((symbol): symbol is string =>
+            typeof symbol === "string" && /^[A-Z]{1,6}(?:-[A-Z])?$/.test(symbol),
+          )
+          .filter((symbol, index, all) => all.indexOf(symbol) === index)
+          .slice(0, 25);
+        if (symbols.length) setStockOrder(symbols);
+      }
+    } catch {
+      // Ignore corrupt local state and retain the default list.
+    } finally {
+      setWatchlistLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (watchlistLoaded) {
+      window.localStorage.setItem(watchlistStorageKey, JSON.stringify(stockOrder));
+    }
+  }, [stockOrder, watchlistLoaded]);
 
   useEffect(() => {
     const source = new EventSource("/api/yahoo-stream");
@@ -511,7 +556,8 @@ export function ApeTermWeb() {
     setAgentLoading(true);
     try {
       const context = [
-        `Watchlist: ${activeQuotes.map((quote) => `${quote[0]} ${quote[1]} ${quote[2]}`).join(", ")}`,
+        `Watchlist symbols: ${stockOrder.join(", ")}`,
+        `Watchlist quotes: ${activeQuotes.map((quote) => `${quote[0]} ${quote[1]} ${quote[2]}`).join(", ")}`,
         `Latest news: ${activeHeadlines
           .slice(0, 8)
           .map((item) => `${item[2]}: ${item[3]}`)
@@ -525,6 +571,17 @@ export function ApeTermWeb() {
       });
       const data = (await response.json()) as AgentData & { error?: string };
       if (!response.ok) throw new Error(data.error ?? `Agent ${response.status}`);
+      for (const action of data.actions ?? []) {
+        const symbol = action.symbol.trim().toUpperCase();
+        if (!/^[A-Z]{1,6}(?:-[A-Z])?$/.test(symbol)) continue;
+        if (action.type === "add_to_watchlist") {
+          setStockOrder((current) =>
+            current.includes(symbol) || current.length >= 25 ? current : [...current, symbol],
+          );
+        } else {
+          setStockOrder((current) => current.filter((item) => item !== symbol));
+        }
+      }
       setAgentMessages((messages) => [...messages, { role: "assistant", content: data.reply }]);
     } catch (error) {
       setAgentError(error instanceof Error ? error.message : "Agent unavailable");

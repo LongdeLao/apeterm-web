@@ -2,6 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 
 type AgentMessage = { role: "user" | "assistant"; content: string };
+type AgentAction = {
+  type: "add_to_watchlist" | "remove_from_watchlist";
+  symbol: string;
+};
 type RateEntry = { count: number; resetAt: number };
 const rateGlobal = globalThis as typeof globalThis & { __apeAgentRate?: Map<string, RateEntry> };
 const rateLimit = (rateGlobal.__apeAgentRate ??= new Map());
@@ -49,6 +53,38 @@ export const Route = createFileRoute("/api/agent")({
         if (!messages.length) return Response.json({ error: "Message required." }, { status: 400 });
 
         const context = body?.context?.trim().slice(0, 6_000) ?? "";
+        const tools = [
+          {
+            type: "function",
+            function: {
+              name: "add_to_watchlist",
+              description: "Add a standard US-listed stock or ETF ticker to the user's watchlist.",
+              parameters: {
+                type: "object",
+                properties: {
+                  symbol: { type: "string", description: "Canonical ticker, for example NFLX" },
+                },
+                required: ["symbol"],
+                additionalProperties: false,
+              },
+            },
+          },
+          {
+            type: "function",
+            function: {
+              name: "remove_from_watchlist",
+              description: "Remove a stock or ETF ticker from the user's watchlist.",
+              parameters: {
+                type: "object",
+                properties: {
+                  symbol: { type: "string", description: "Canonical ticker, for example NFLX" },
+                },
+                required: ["symbol"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ];
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           signal: AbortSignal.timeout(60_000),
@@ -64,7 +100,7 @@ export const Route = createFileRoute("/api/agent")({
               {
                 role: "system",
                 content:
-                  "You are Ape, the concise market research agent inside ApeTerm. Use the supplied live dashboard context when relevant. Clearly distinguish facts from inference, avoid fabricated prices or filings, and do not present personalized financial advice. Keep answers compact and readable in a narrow terminal panel.",
+                  "You are Ape, the concise market research agent inside ApeTerm. You can modify the watchlist: whenever the user asks to add or remove an instrument, resolve its common company name to its canonical US ticker and call the matching tool. Never say the watchlist is read-only. Use the supplied live dashboard context when relevant. Clearly distinguish facts from inference, avoid fabricated prices or filings, and do not present personalized financial advice. Keep answers compact and readable in a narrow terminal panel.",
               },
               ...(context
                 ? [{ role: "system", content: `Current ApeTerm dashboard context:\n${context}` }]
@@ -73,6 +109,8 @@ export const Route = createFileRoute("/api/agent")({
             ],
             temperature: 0.3,
             max_tokens: 700,
+            tools,
+            tool_choice: "auto",
           }),
         });
         const payload = await response.json().catch(() => null);
@@ -83,11 +121,36 @@ export const Route = createFileRoute("/api/agent")({
             { status: response.status === 429 ? 429 : 502 },
           );
         }
-        const reply = payload?.choices?.[0]?.message?.content;
-        if (typeof reply !== "string" || !reply.trim()) {
+        const modelMessage = payload?.choices?.[0]?.message;
+        const actions = (modelMessage?.tool_calls ?? []).flatMap(
+          (call: { function?: { name?: string; arguments?: string } }): AgentAction[] => {
+            const name = call.function?.name;
+            if (name !== "add_to_watchlist" && name !== "remove_from_watchlist") return [];
+            try {
+              const args = JSON.parse(call.function?.arguments ?? "{}") as { symbol?: unknown };
+              const symbol = typeof args.symbol === "string" ? args.symbol.trim().toUpperCase() : "";
+              if (!/^[A-Z]{1,6}(?:-[A-Z])?$/.test(symbol)) return [];
+              return [{ type: name, symbol }];
+            } catch {
+              return [];
+            }
+          },
+        );
+        const modelReply = modelMessage?.content;
+        const reply =
+          typeof modelReply === "string" && modelReply.trim()
+            ? modelReply.trim()
+            : actions
+                .map((action) =>
+                  action.type === "add_to_watchlist"
+                    ? `Added ${action.symbol} to your watchlist.`
+                    : `Removed ${action.symbol} from your watchlist.`,
+                )
+                .join("\n");
+        if (!reply) {
           return Response.json({ error: "The model returned no response." }, { status: 502 });
         }
-        return Response.json({ reply: reply.trim(), model: payload.model ?? "openrouter/free" });
+        return Response.json({ reply, model: payload.model ?? "openrouter/free", actions });
       },
     },
   },
