@@ -14,6 +14,12 @@ import { Route as SalaryRoiRouteImport } from './routes/salary-roi'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiYahooStreamRouteImport } from './routes/api.yahoo-stream'
+import { Route as ApiSecRouteImport } from './routes/api.sec'
+import { Route as ApiSearchRouteImport } from './routes/api.search'
+import { Route as ApiNewsRouteImport } from './routes/api.news'
+import { Route as ApiMarketRouteImport } from './routes/api.market'
+import { Route as ApiInstrumentRouteImport } from './routes/api.instrument'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -40,6 +46,36 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiYahooStreamRoute = ApiYahooStreamRouteImport.update({
+  id: '/api/yahoo-stream',
+  path: '/api/yahoo-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSecRoute = ApiSecRouteImport.update({
+  id: '/api/sec',
+  path: '/api/sec',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNewsRoute = ApiNewsRouteImport.update({
+  id: '/api/news',
+  path: '/api/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMarketRoute = ApiMarketRouteImport.update({
+  id: '/api/market',
+  path: '/api/market',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstrumentRoute = ApiInstrumentRouteImport.update({
+  id: '/api/instrument',
+  path: '/api/instrument',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +83,12 @@ export interface FileRoutesByFullPath {
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/instrument': typeof ApiInstrumentRoute
+  '/api/market': typeof ApiMarketRoute
+  '/api/news': typeof ApiNewsRoute
+  '/api/search': typeof ApiSearchRoute
+  '/api/sec': typeof ApiSecRoute
+  '/api/yahoo-stream': typeof ApiYahooStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +96,12 @@ export interface FileRoutesByTo {
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/instrument': typeof ApiInstrumentRoute
+  '/api/market': typeof ApiMarketRoute
+  '/api/news': typeof ApiNewsRoute
+  '/api/search': typeof ApiSearchRoute
+  '/api/sec': typeof ApiSecRoute
+  '/api/yahoo-stream': typeof ApiYahooStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +110,53 @@ export interface FileRoutesById {
   '/docs': typeof DocsRoute
   '/salary-roi': typeof SalaryRoiRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/instrument': typeof ApiInstrumentRoute
+  '/api/market': typeof ApiMarketRoute
+  '/api/news': typeof ApiNewsRoute
+  '/api/search': typeof ApiSearchRoute
+  '/api/sec': typeof ApiSecRoute
+  '/api/yahoo-stream': typeof ApiYahooStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/docs' | '/salary-roi' | '/sitemap.xml'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/docs'
+    | '/salary-roi'
+    | '/sitemap.xml'
+    | '/api/instrument'
+    | '/api/market'
+    | '/api/news'
+    | '/api/search'
+    | '/api/sec'
+    | '/api/yahoo-stream'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/docs' | '/salary-roi' | '/sitemap.xml'
-  id: '__root__' | '/' | '/app' | '/docs' | '/salary-roi' | '/sitemap.xml'
+  to:
+    | '/'
+    | '/app'
+    | '/docs'
+    | '/salary-roi'
+    | '/sitemap.xml'
+    | '/api/instrument'
+    | '/api/market'
+    | '/api/news'
+    | '/api/search'
+    | '/api/sec'
+    | '/api/yahoo-stream'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/docs'
+    | '/salary-roi'
+    | '/sitemap.xml'
+    | '/api/instrument'
+    | '/api/market'
+    | '/api/news'
+    | '/api/search'
+    | '/api/sec'
+    | '/api/yahoo-stream'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +165,12 @@ export interface RootRouteChildren {
   DocsRoute: typeof DocsRoute
   SalaryRoiRoute: typeof SalaryRoiRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiInstrumentRoute: typeof ApiInstrumentRoute
+  ApiMarketRoute: typeof ApiMarketRoute
+  ApiNewsRoute: typeof ApiNewsRoute
+  ApiSearchRoute: typeof ApiSearchRoute
+  ApiSecRoute: typeof ApiSecRoute
+  ApiYahooStreamRoute: typeof ApiYahooStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +210,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/yahoo-stream': {
+      id: '/api/yahoo-stream'
+      path: '/api/yahoo-stream'
+      fullPath: '/api/yahoo-stream'
+      preLoaderRoute: typeof ApiYahooStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sec': {
+      id: '/api/sec'
+      path: '/api/sec'
+      fullPath: '/api/sec'
+      preLoaderRoute: typeof ApiSecRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/news': {
+      id: '/api/news'
+      path: '/api/news'
+      fullPath: '/api/news'
+      preLoaderRoute: typeof ApiNewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/market': {
+      id: '/api/market'
+      path: '/api/market'
+      fullPath: '/api/market'
+      preLoaderRoute: typeof ApiMarketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instrument': {
+      id: '/api/instrument'
+      path: '/api/instrument'
+      fullPath: '/api/instrument'
+      preLoaderRoute: typeof ApiInstrumentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +261,12 @@ const rootRouteChildren: RootRouteChildren = {
   DocsRoute: DocsRoute,
   SalaryRoiRoute: SalaryRoiRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiInstrumentRoute: ApiInstrumentRoute,
+  ApiMarketRoute: ApiMarketRoute,
+  ApiNewsRoute: ApiNewsRoute,
+  ApiSearchRoute: ApiSearchRoute,
+  ApiSecRoute: ApiSecRoute,
+  ApiYahooStreamRoute: ApiYahooStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

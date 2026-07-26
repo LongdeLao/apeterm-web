@@ -1,855 +1,985 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  Bell,
-  BookOpen,
-  Bot,
-  CalendarDays,
-  ChevronDown,
-  CircleHelp,
-  Command,
-  FileText,
-  Gauge,
-  LayoutDashboard,
-  LineChart,
-  Menu,
-  MessageSquareText,
-  Moon,
-  Newspaper,
-  PanelLeftClose,
-  Plus,
-  Search,
-  Send,
-  Settings,
-  SlidersHorizontal,
-  Sparkles,
-  Star,
-  TrendingDown,
-  TrendingUp,
-  WalletCards,
-  X,
-} from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+  InstrumentChart,
+  chartTimeframes,
+  type ChartDetail,
+  type ChartTimeframe,
+} from "@/components/instrument-chart";
 
 export const Route = createFileRoute("/app")({
   head: () => ({
-    meta: [
-      { title: "ApeTerm Web — Investment terminal" },
-      {
-        name: "description",
-        content: "A browser-based ApeTerm workspace for markets, news, notes, and AI research.",
-      },
-    ],
+    meta: [{ title: "ApeTerm" }, { name: "description", content: "ApeTerm in your browser." }],
   }),
-  component: ApeTermApp,
+  component: ApeTermWeb,
 });
 
-type SymbolKey = "NVDA" | "AAPL" | "MSFT" | "BTC" | "TSLA";
-type RangeKey = "1D" | "1W" | "1M" | "3M" | "1Y";
-type WorkspaceKey = "overview" | "markets" | "news" | "portfolio" | "calendar";
-type AgentMessage = { role: "ape" | "you"; body: string };
-
-const instruments: Record<
-  SymbolKey,
-  { name: string; price: number; change: number; volume: string; high: number; low: number }
-> = {
-  NVDA: {
-    name: "NVIDIA",
-    price: 173.62,
-    change: 2.84,
-    volume: "182.4M",
-    high: 174.91,
-    low: 168.48,
-  },
-  AAPL: { name: "Apple", price: 213.88, change: 0.71, volume: "54.8M", high: 215.24, low: 210.86 },
-  MSFT: {
-    name: "Microsoft",
-    price: 495.94,
-    change: -0.34,
-    volume: "21.1M",
-    high: 500.02,
-    low: 492.11,
-  },
-  BTC: {
-    name: "Bitcoin USD",
-    price: 118_420.12,
-    change: 1.92,
-    volume: "$48.2B",
-    high: 119_820,
-    low: 115_940,
-  },
-  TSLA: { name: "Tesla", price: 321.67, change: -1.26, volume: "92.7M", high: 328.44, low: 318.04 },
+type Panel = "news" | "watchlist" | "sec" | "notes";
+type Overlay = "search" | "spotlight" | "settings" | "help" | null;
+type Quote = {
+  symbol: string;
+  price: number;
+  changePercent: number;
+  volume: number;
+  relativeVolume: number | null;
+  marketState?: string;
 };
-
-const watchlist = [
-  { symbol: "NVDA" as const, price: "173.62", change: 2.84 },
-  { symbol: "AAPL" as const, price: "213.88", change: 0.71 },
-  { symbol: "MSFT" as const, price: "495.94", change: -0.34 },
-  { symbol: "BTC" as const, price: "118,420", change: 1.92 },
-  { symbol: "TSLA" as const, price: "321.67", change: -1.26 },
-];
-
-const news = [
-  {
-    id: 1,
-    time: "12m",
-    source: "Reuters",
-    symbol: "NVDA",
-    title: "Nvidia supplier outlook points to sustained AI infrastructure demand",
-    priority: "High",
-  },
-  {
-    id: 2,
-    time: "31m",
-    source: "Bloomberg",
-    symbol: "AAPL",
-    title: "Apple expands on-device intelligence rollout across Europe",
-    priority: "Medium",
-  },
-  {
-    id: 3,
-    time: "48m",
-    source: "SEC",
-    symbol: "MSFT",
-    title: "Microsoft files 8-K following quarterly cloud segment update",
-    priority: "High",
-  },
-  {
-    id: 4,
-    time: "1h",
-    source: "CoinDesk",
-    symbol: "BTC",
-    title: "Bitcoin liquidity deepens as institutional inflows resume",
-    priority: "Medium",
-  },
-];
-
-const chartSeed: Record<RangeKey, number[]> = {
-  "1D": [168.8, 169.4, 168.9, 170.2, 169.7, 171.4, 170.8, 172.1, 171.7, 173.2, 172.8, 173.62],
-  "1W": [165.2, 166.8, 164.9, 168.1, 169.6, 168.7, 170.9, 173.62],
-  "1M": [158.1, 160.4, 157.8, 162.6, 165.1, 163.9, 168.2, 166.7, 171.8, 173.62],
-  "3M": [142.2, 146.8, 151.4, 148.1, 155.7, 160.2, 157.4, 165.9, 169.1, 173.62],
-  "1Y": [112.4, 119.8, 126.3, 122.1, 138.8, 145.2, 152.7, 149.4, 160.8, 173.62],
+type MarketData = { stocks: Quote[]; crypto: Quote[]; errors: number; updatedAt: string };
+type NewsItem = {
+  id: string;
+  age: string;
+  source: string;
+  symbol: string;
+  title: string;
+  url: string;
 };
+type NewsData = { items: NewsItem[]; updatedAt: string };
+type Holding = {
+  issuer: string;
+  symbol: string;
+  cusip: string;
+  shares: number;
+  valueUsd: number;
+  weight: number;
+};
+type SecEntity = {
+  name: string;
+  cik: string;
+  filing: {
+    form: string;
+    filedAt: string;
+    reportDate: string;
+    accessionNumber: string;
+    documentUrl: string;
+  };
+  positions: number;
+  totalValueUsd: number;
+  holdings: Holding[];
+};
+type SecData = { entities: SecEntity[]; errors: string[]; updatedAt: string };
+type SearchResult = { symbol: string; name: string; type: string; exchange: string };
+type SearchData = { results: SearchResult[]; error?: string };
+type InstrumentDetail = ChartDetail;
 
-const navItems = [
-  { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
-  { id: "markets" as const, label: "Markets", icon: LineChart },
-  { id: "news" as const, label: "News", icon: Newspaper },
-  { id: "portfolio" as const, label: "Portfolio", icon: WalletCards },
-  { id: "calendar" as const, label: "Calendar", icon: CalendarDays },
-];
+const newsCategories = ["all", "watchlist", "macro", "reddit", "crypto"];
+const stockOrder = ["SPY", "QQQ", "NVDA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "TSLA", "JPM"];
+const cryptoOrder = ["BTC", "ETH", "SOL", "XRP", "BNB", "DOGE", "ADA", "AVAX"];
 
-function formatPrice(value: number, symbol: SymbolKey) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: symbol === "BTC" ? 0 : 2,
-  }).format(value);
+async function getJson<T>(url: string): Promise<T> {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error(`${url}: ${response.status}`);
+  return response.json() as Promise<T>;
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function compactNumber(value: number, currency = false) {
+  const formatted = new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+  return currency ? `$${formatted}` : formatted;
+}
+
+function formatQuoteRow(quote: Quote, crypto: boolean) {
+  const decimals = quote.price < 1 ? 4 : quote.price < 10 ? 2 : quote.price < 1_000 ? 2 : 0;
+  return [
+    quote.symbol,
+    quote.price.toLocaleString("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }),
+    `${quote.changePercent >= 0 ? "+" : ""}${quote.changePercent.toFixed(2)}%`,
+    compactNumber(quote.volume, crypto),
+    quote.relativeVolume == null ? "—" : `${quote.relativeVolume.toFixed(1)}x`,
+  ] as const;
+}
+
+function orderedQuotes(
+  order: string[],
+  seed: Quote[] | undefined,
+  streamed: Record<string, Quote>,
+) {
+  const fallback = new Map(seed?.map((quote) => [quote.symbol, quote]));
+  return order.flatMap((symbol) => {
+    const quote = streamed[symbol] ?? fallback.get(symbol);
+    return quote ? [quote] : [];
+  });
+}
+
+const allHeadlines = [
+  ["2m", "REUTERS", "NVDA", "Nvidia supplier outlook signals sustained AI demand"],
+  ["11m", "BLOOMBERG", "AAPL", "Apple expands on-device intelligence in Europe"],
+  ["24m", "SEC", "MSFT", "Microsoft files 8-K after cloud segment update"],
+  ["38m", "COINDESK", "BTC", "Bitcoin liquidity deepens as inflows resume"],
+  ["1h", "CNBC", "TSLA", "Tesla prepares investors for quarterly results"],
+  ["2h", "REUTERS", "SPY", "Wall Street opens higher as chip shares rally"],
+] as const;
+
+const newsFeeds = [
+  allHeadlines,
+  [
+    ["2m", "REUTERS", "NVDA", "Nvidia supplier outlook signals sustained AI demand"],
+    ["11m", "BLOOMBERG", "AAPL", "Apple expands on-device intelligence in Europe"],
+    ["24m", "SEC", "MSFT", "Microsoft files 8-K after cloud segment update"],
+    ["1h", "CNBC", "TSLA", "Tesla prepares investors for quarterly results"],
+  ],
+  [
+    ["6m", "REUTERS", "MACRO", "Dollar eases as markets weigh the next Fed move"],
+    ["19m", "BLS", "US", "Jobless claims hold near recent range"],
+    ["43m", "ECB", "EUR", "ECB survey shows inflation expectations stabilizing"],
+    ["2h", "BEA", "US", "New home sales beat consensus estimates"],
+  ],
+  [
+    ["3m", "REDDIT", "NVDA", "r/stocks: semiconductor strength discussion"],
+    ["17m", "REDDIT", "TSLA", "r/investing: Tesla earnings expectations thread"],
+    ["31m", "REDDIT", "SPY", "r/wallstreetbets: daily market discussion"],
+    ["1h", "REDDIT", "AAPL", "r/apple: intelligence rollout megathread"],
+  ],
+  [
+    ["1m", "COINDESK", "BTC", "Bitcoin holds above $118K as spot demand grows"],
+    ["8m", "THE BLOCK", "ETH", "Ethereum staking deposits reach monthly high"],
+    ["22m", "DECRYPT", "SOL", "Solana activity rises with renewed DeFi volumes"],
+    ["47m", "COINTELE", "XRP", "XRP volatility expands after regulatory update"],
+    ["1h", "COINDESK", "DOGE", "Major tokens advance during US session"],
+  ],
+] as const;
+
+const mainQuotes = [
+  ["SPY", "637.48", "+0.42%", "48.2M", "0.8x"],
+  ["QQQ", "572.19", "+0.77%", "39.1M", "1.1x"],
+  ["NVDA", "173.62", "+2.84%", "182.4M", "1.8x"],
+  ["AAPL", "213.88", "+0.71%", "54.8M", "0.9x"],
+  ["MSFT", "495.94", "-0.34%", "21.1M", "0.7x"],
+  ["AMZN", "231.44", "+1.08%", "36.7M", "1.2x"],
+  ["META", "712.05", "-0.62%", "18.9M", "0.8x"],
+  ["GOOGL", "192.76", "+0.29%", "22.4M", "0.7x"],
+  ["TSLA", "321.67", "-1.26%", "92.7M", "1.4x"],
+  ["JPM", "289.62", "+0.18%", "8.4M", "0.6x"],
+] as const;
+
+const cryptoQuotes = [
+  ["BTC", "118,420", "+1.92%", "$48.2B", "1.3x"],
+  ["ETH", "3,782.4", "+2.41%", "$24.8B", "1.5x"],
+  ["SOL", "191.83", "+4.08%", "$6.7B", "1.8x"],
+  ["XRP", "3.18", "-0.71%", "$4.9B", "0.9x"],
+  ["BNB", "782.60", "+0.86%", "$2.1B", "0.7x"],
+  ["DOGE", "0.2431", "+3.17%", "$3.8B", "1.6x"],
+  ["ADA", "0.8462", "-1.04%", "$1.4B", "0.8x"],
+  ["AVAX", "25.91", "+1.48%", "$612M", "1.1x"],
+] as const;
+
+const institutions = [
+  ["Berkshire Hathaway", "13F", "$267.1B", "41"],
+  ["BlackRock", "13F", "$4.9T", "5,112"],
+  ["Bridgewater", "13F", "$21.8B", "746"],
+  ["Citadel Advisors", "13F", "$578.3B", "15,422"],
+  ["Vanguard Group", "13F", "$5.8T", "4,912"],
+] as const;
+
+const executives = [
+  ["Tim Cook", "AAPL", "$24.2M", "Form 4"],
+  ["Satya Nadella", "MSFT", "$14.7M", "Form 4"],
+  ["Jensen Huang", "NVDA", "$13.5M", "Form 4"],
+  ["Mark Zuckerberg", "META", "$8.9M", "Form 4"],
+  ["Andy Jassy", "AMZN", "$6.3M", "Form 4"],
+] as const;
+
+const congress = [
+  ["Nancy Pelosi", "CA-11", "$1M–$5M", "45 days"],
+  ["Tommy Tuberville", "AL", "$250K–$500K", "32 days"],
+  ["Dan Crenshaw", "TX-02", "$100K–$250K", "28 days"],
+  ["Josh Gottheimer", "NJ-05", "$50K–$100K", "19 days"],
+  ["Ro Khanna", "CA-17", "$15K–$50K", "12 days"],
+] as const;
+
+const secFeeds = [institutions, executives, congress] as const;
+
+const notes = [
+  ["★", "09:41", "NVDA", "Watch $175 resistance after earnings call"],
+  [" ", "YDAY", "MSFT", "Cloud growth still above consensus"],
+  [" ", "JUL24", "—", "Review portfolio exposure before FOMC"],
+  ["★", "JUL22", "BTC", "Institutional flows back above 30d mean"],
+] as const;
+
+function PanelTitle({ title, active }: { title: string; active: boolean }) {
   return (
-    <div>
-      <p className="text-[10px] uppercase tracking-[0.16em] text-[#636b78]">{label}</p>
-      <p className="mt-1 font-mono text-xs text-[#c7ccd4]">{value}</p>
+    <div className="h-[22px] text-[13px] font-bold leading-[22px]">
+      <span className={active ? "bg-[#e8e8e8] px-1 text-[#0c0c0c]" : "px-1 text-[#d0d0d0]"}>
+        {title}
+      </span>
     </div>
   );
 }
 
-function ApeTermApp() {
-  const [symbol, setSymbol] = useState<SymbolKey>("NVDA");
-  const [range, setRange] = useState<RangeKey>("1D");
-  const [workspace, setWorkspace] = useState<WorkspaceKey>("overview");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [agentOpen, setAgentOpen] = useState(true);
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [newsFilter, setNewsFilter] = useState<"All" | "Watchlist" | "Filings">("All");
-  const [starred, setStarred] = useState<SymbolKey[]>(["NVDA", "AAPL", "BTC"]);
-  const [agentInput, setAgentInput] = useState("");
-  const [messages, setMessages] = useState<AgentMessage[]>([
-    {
-      role: "ape",
-      body: "NVDA is up 2.84% on above-average volume. Momentum is positive, but the price is approaching today's high at $174.91.",
-    },
-  ]);
+function Tabs({
+  items,
+  selected,
+  onSelect,
+}: {
+  items: string[];
+  selected: number;
+  onSelect: (index: number) => void;
+}) {
+  return (
+    <div className="flex h-[25px] items-start gap-5 border-b border-[#5b5b5b] text-[10px] font-bold text-[#8f8f8f]">
+      {items.map((item, index) => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => onSelect(index)}
+          className={`h-[25px] px-1 ${selected === index ? "border-b-2 border-[#e8e8e8] text-[#e8e8e8]" : "hover:text-[#d0d0d0]"}`}
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+  );
+}
 
-  const instrument = instruments[symbol];
-  const chartData = useMemo(() => {
-    const ratio = instrument.price / instruments.NVDA.price;
-    return chartSeed[range].map((value, index, all) => ({
-      label: index === all.length - 1 ? "Now" : `${index + 1}`,
-      price: Number((value * ratio).toFixed(2)),
-    }));
-  }, [instrument.price, range]);
+function Window({
+  id,
+  onFocus,
+  children,
+}: {
+  id: Panel;
+  onFocus: (panel: Panel) => void;
+  children: React.ReactNode;
+}) {
+  const divider =
+    id === "news"
+      ? "border-b border-r"
+      : id === "watchlist"
+        ? "border-b"
+        : id === "sec"
+          ? "border-r"
+          : "";
+  return (
+    <section
+      onMouseDown={() => onFocus(id)}
+      className={`min-h-0 overflow-hidden border-[#555] px-3 py-2.5 sm:px-4 sm:py-3 ${divider}`}
+    >
+      {children}
+    </section>
+  );
+}
+
+function ApeTermWeb() {
+  const [focused, setFocused] = useState<Panel>("news");
+  const [newsTab, setNewsTab] = useState(0);
+  const [watchTab, setWatchTab] = useState(0);
+  const [secTab, setSecTab] = useState(0);
+  const [notesTab, setNotesTab] = useState(0);
+  const [newsRow, setNewsRow] = useState(0);
+  const [quoteRow, setQuoteRow] = useState(2);
+  const [secRow, setSecRow] = useState(0);
+  const [noteRow, setNoteRow] = useState(0);
+  const [agentOpen, setAgentOpen] = useState(false);
+  const [overlay, setOverlay] = useState<Overlay>(null);
+  const [agentInput, setAgentInput] = useState("");
+  const [agentMessages, setAgentMessages] = useState<string[]>([]);
+  const [spotlightRow, setSpotlightRow] = useState(0);
+  const [stockStream, setStockStream] = useState<Record<string, Quote>>({});
+  const [cryptoStream, setCryptoStream] = useState<Record<string, Quote>>({});
+  const [stockStreamStatus, setStockStreamStatus] = useState("connecting");
+  const [cryptoStreamStatus, setCryptoStreamStatus] = useState("connecting");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchRow, setSearchRow] = useState(0);
+  const [selectedInstrument, setSelectedInstrument] = useState<SearchResult | null>(null);
+  const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframe>("3m");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const market = useQuery({
+    queryKey: ["market"],
+    queryFn: () => getJson<MarketData>("/api/market"),
+    enabled: typeof window !== "undefined",
+    refetchInterval: 60_000,
+    retry: 1,
+  });
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setPaletteOpen((open) => !open);
-      }
-      if (event.key === "Escape") {
-        setPaletteOpen(false);
-        setMobileNavOpen(false);
-      }
+    const source = new EventSource("/api/yahoo-stream");
+    source.onopen = () => setStockStreamStatus("live");
+    source.onmessage = (event) => {
+      const quote = JSON.parse(event.data) as Quote;
+      setStockStream((current) => ({ ...current, [quote.symbol]: quote }));
+      setStockStreamStatus(quote.marketState ?? "live");
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    source.onerror = () => setStockStreamStatus("reconnecting");
+    return () => source.close();
   }, []);
 
-  const toggleStar = (nextSymbol: SymbolKey) => {
-    setStarred((current) =>
-      current.includes(nextSymbol)
-        ? current.filter((item) => item !== nextSymbol)
-        : [...current, nextSymbol],
-    );
-  };
+  useEffect(() => {
+    let socket: WebSocket | undefined;
+    let reconnect: ReturnType<typeof setTimeout> | undefined;
+    let closed = false;
+    const streams = cryptoOrder.map((symbol) => `${symbol.toLowerCase()}usdt@ticker`).join("/");
 
-  const sendMessage = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const question = agentInput.trim();
-    if (!question) return;
-    setMessages((current) => [
-      ...current,
-      { role: "you", body: question },
-      {
-        role: "ape",
-        body: `${symbol} is trading at ${formatPrice(instrument.price, symbol)} (${instrument.change >= 0 ? "+" : ""}${instrument.change.toFixed(2)}%). The strongest near-term signal is price holding above the session midpoint with ${instrument.volume} in volume. Watch ${formatPrice(instrument.high, symbol)} for confirmation.`,
-      },
-    ]);
-    setAgentInput("");
-  };
+    const connect = () => {
+      setCryptoStreamStatus("connecting");
+      socket = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+      socket.onopen = () => setCryptoStreamStatus("live · 1s");
+      socket.onmessage = (event) => {
+        const ticker = JSON.parse(event.data).data;
+        const symbol = String(ticker.s).replace(/USDT$/, "");
+        setCryptoStream((current) => ({
+          ...current,
+          [symbol]: {
+            symbol,
+            price: Number(ticker.c),
+            changePercent: Number(ticker.P),
+            volume: Number(ticker.q),
+            relativeVolume: null,
+          },
+        }));
+      };
+      socket.onerror = () => setCryptoStreamStatus("reconnecting");
+      socket.onclose = () => {
+        if (!closed) reconnect = setTimeout(connect, 1_500);
+      };
+    };
 
-  const filteredNews = news.filter((item) => {
-    if (newsFilter === "Filings") return item.source === "SEC";
-    if (newsFilter === "Watchlist") return starred.includes(item.symbol as SymbolKey);
+    connect();
+    return () => {
+      closed = true;
+      if (reconnect) clearTimeout(reconnect);
+      socket?.close();
+    };
+  }, []);
+  const liveNews = useQuery({
+    queryKey: ["news", newsCategories[newsTab]],
+    queryFn: () => getJson<NewsData>(`/api/news?category=${newsCategories[newsTab]}`),
+    enabled: typeof window !== "undefined",
+    refetchInterval: 120_000,
+    staleTime: 60_000,
+    retry: 1,
+  });
+  const sec = useQuery({
+    queryKey: ["sec-13f-v3"],
+    queryFn: () => getJson<SecData>("/api/sec?view=13f-v3"),
+    enabled: typeof window !== "undefined",
+    refetchInterval: 300_000,
+    staleTime: 300_000,
+    retry: 1,
+  });
+  const instrumentSearch = useQuery({
+    queryKey: ["instrument-search", debouncedSearch],
+    queryFn: () => getJson<SearchData>(`/api/search?q=${encodeURIComponent(debouncedSearch)}`),
+    enabled: typeof window !== "undefined" && debouncedSearch.length > 0,
+    staleTime: 60_000,
+    retry: 1,
+  });
+  const instrumentDetail = useQuery({
+    queryKey: ["instrument", selectedInstrument?.symbol, chartTimeframe],
+    queryFn: () =>
+      getJson<InstrumentDetail>(
+        `/api/instrument?symbol=${encodeURIComponent(selectedInstrument?.symbol ?? "")}&timeframe=${chartTimeframe}`,
+      ),
+    enabled: typeof window !== "undefined" && Boolean(selectedInstrument),
+    staleTime: 5_000,
+    refetchInterval: 15_000,
+    retry: 1,
+  });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), 180);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  const panels: Panel[] = useMemo(() => ["news", "watchlist", "sec", "notes"], []);
+  const searchResults = instrumentSearch.data?.results ?? [];
+  const safeSearchRow = searchResults.length ? searchRow % searchResults.length : 0;
+  const activeNewsItems = liveNews.data?.items.length ? liveNews.data.items : null;
+  const activeHeadlines = activeNewsItems
+    ? activeNewsItems.map(
+        (item) => [item.age, item.source.toUpperCase(), item.symbol, item.title] as const,
+      )
+    : newsFeeds[newsTab];
+  const liveQuotes =
+    watchTab === 0
+      ? orderedQuotes(stockOrder, market.data?.stocks, stockStream)
+      : orderedQuotes(cryptoOrder, market.data?.crypto, cryptoStream);
+  const activeQuotes = liveQuotes?.length
+    ? liveQuotes.map((quote) => formatQuoteRow(quote, watchTab === 1))
+    : watchTab === 0
+      ? mainQuotes
+      : cryptoQuotes;
+  const liveInstitutions = sec.data?.entities.length
+    ? sec.data.entities.map((entity) => {
+        return [
+          entity.name,
+          entity.filing.form,
+          compactNumber(entity.totalValueUsd, true),
+          `${entity.positions}`,
+        ] as const;
+      })
+    : null;
+  const activeSecFeed = secTab === 0 && liveInstitutions ? liveInstitutions : secFeeds[secTab];
+  const safeSecRow = secRow % activeSecFeed.length;
+  const selectedSecEntity = secTab === 0 ? sec.data?.entities[safeSecRow] : undefined;
+  const activeNotes = notes.filter((row) => {
+    if (notesTab === 1) return row[2] !== "—";
+    if (notesTab === 2) return row[2] === "—";
+    if (notesTab === 3) return row[0] === "★";
     return true;
   });
 
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      if (event.key === "Escape") {
+        if (selectedInstrument) setSelectedInstrument(null);
+        else setOverlay(null);
+        return;
+      }
+      if (typing) return;
+      if (selectedInstrument) {
+        const current = chartTimeframes.indexOf(chartTimeframe);
+        if (event.key === "ArrowRight" || event.key === "t") {
+          event.preventDefault();
+          setChartTimeframe(chartTimeframes[(current + 1) % chartTimeframes.length]);
+        } else if (event.key === "ArrowLeft" || event.key === "T") {
+          event.preventDefault();
+          setChartTimeframe(
+            chartTimeframes[(current - 1 + chartTimeframes.length) % chartTimeframes.length],
+          );
+        } else if (/^[1-8]$/.test(event.key)) {
+          setChartTimeframe(chartTimeframes[Number(event.key) - 1]);
+        }
+        return;
+      }
+      if (event.ctrlKey && event.key.toLowerCase() === "p") {
+        event.preventDefault();
+        setOverlay("spotlight");
+        return;
+      }
+      if (event.key === "Tab") {
+        event.preventDefault();
+        setFocused((current) => {
+          const index = panels.indexOf(current);
+          return panels[(index + (event.shiftKey ? 3 : 1)) % panels.length];
+        });
+      } else if (event.key === "a") setAgentOpen((open) => !open);
+      else if (event.key === "/") {
+        setSelectedInstrument(null);
+        setOverlay("search");
+      } else if (event.key === ",") setOverlay("settings");
+      else if (event.key === "?") setOverlay("help");
+      else if (event.key === "ArrowRight") {
+        if (focused === "news") setNewsTab((value) => (value + 1) % 5);
+        if (focused === "watchlist") setWatchTab((value) => (value + 1) % 2);
+        if (focused === "sec") setSecTab((value) => (value + 1) % 3);
+        if (focused === "notes") setNotesTab((value) => (value + 1) % 4);
+      } else if (event.key === "ArrowDown" || event.key === "j") {
+        if (focused === "news") setNewsRow((value) => (value + 1) % activeHeadlines.length);
+        if (focused === "watchlist") setQuoteRow((value) => (value + 1) % activeQuotes.length);
+        if (focused === "sec") setSecRow((value) => (value + 1) % activeSecFeed.length);
+        if (focused === "notes") setNoteRow((value) => (value + 1) % activeNotes.length);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [
+    activeHeadlines.length,
+    activeNotes.length,
+    activeQuotes.length,
+    activeSecFeed.length,
+    chartTimeframe,
+    focused,
+    overlay,
+    panels,
+    selectedInstrument,
+  ]);
+
+  useEffect(() => {
+    if (overlay === "search" && !selectedInstrument) searchRef.current?.focus();
+  }, [overlay, selectedInstrument]);
+
+  const submitAgent = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!agentInput.trim()) return;
+    setAgentMessages((messages) => [...messages, agentInput.trim()]);
+    setAgentInput("");
+  };
+
+  if (selectedInstrument) {
+    return (
+      <InstrumentChart
+        instrument={selectedInstrument}
+        detail={instrumentDetail.data}
+        loading={instrumentDetail.isPending}
+        error={instrumentDetail.isError}
+        timeframe={chartTimeframe}
+        onTimeframe={setChartTimeframe}
+        onClose={() => setSelectedInstrument(null)}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#080b0f] font-sans text-[#dce1e8] selection:bg-[#f2b84b] selection:text-black">
-      <header className="sticky top-0 z-30 flex h-14 items-center border-b border-white/[0.08] bg-[#0a0d12]/95 px-3 backdrop-blur-xl sm:px-4">
-        <button
-          type="button"
-          className="mr-2 rounded-md p-2 text-[#87909d] hover:bg-white/[0.06] hover:text-white lg:hidden"
-          onClick={() => setMobileNavOpen(true)}
-          aria-label="Open navigation"
+    <div className="h-screen min-h-[460px] overflow-hidden bg-[#0c0c0c] font-mono text-[12px] leading-[1.36] text-[#e8e8e8] selection:bg-[#e8e8e8] selection:text-[#0c0c0c]">
+      <div className="flex h-[calc(100vh-22px)] min-h-[438px]">
+        <main
+          className={`grid min-w-0 flex-1 grid-cols-2 grid-rows-2 ${agentOpen ? "border-r border-[#3a3a3a]" : ""}`}
         >
-          <Menu className="h-4 w-4" />
-        </button>
-        <Link to="/" className="flex items-center gap-2.5" aria-label="ApeTerm home">
-          <img src="/logo.png" alt="" className="h-7 w-7 rounded-lg object-cover" />
-          <span className="font-mono text-sm font-semibold tracking-tight text-white">apeterm</span>
-          <span className="rounded border border-[#f2b84b]/20 bg-[#f2b84b]/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[#f2b84b]">
-            web
-          </span>
-        </Link>
-
-        <button
-          type="button"
-          onClick={() => setPaletteOpen(true)}
-          className="mx-auto hidden w-full max-w-md items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.035] px-3 py-2 text-left text-xs text-[#697381] transition hover:border-white/[0.14] hover:bg-white/[0.05] md:flex"
-        >
-          <Search className="h-3.5 w-3.5" />
-          <span>Search markets, commands, and workspaces</span>
-          <span className="ml-auto rounded border border-white/10 px-1.5 py-0.5 font-mono text-[9px]">
-            ⌘ K
-          </span>
-        </button>
-
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
-          <div className="hidden items-center gap-1.5 font-mono text-[10px] text-[#77808c] sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#68d391] shadow-[0_0_8px_#68d391]" />
-            MARKET OPEN
-          </div>
-          <button
-            type="button"
-            className="rounded-md p-2 text-[#7b8592] hover:bg-white/[0.06] hover:text-white"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="rounded-md p-2 text-[#7b8592] hover:bg-white/[0.06] hover:text-white"
-            aria-label="Appearance"
-          >
-            <Moon className="h-4 w-4" />
-          </button>
-          <div className="ml-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#272d35] font-mono text-[10px] text-[#d9dee5]">
-            LD
-          </div>
-        </div>
-      </header>
-
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
-        <aside
-          className={`${sidebarOpen ? "w-52" : "w-[58px]"} hidden shrink-0 border-r border-white/[0.08] bg-[#090c10] transition-[width] duration-200 lg:flex lg:flex-col`}
-        >
-          <nav className="flex-1 space-y-1 p-2" aria-label="Workspace navigation">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = workspace === item.id;
-              return (
+          <Window id="news" onFocus={setFocused}>
+            <PanelTitle title=" news " active={focused === "news"} />
+            <Tabs
+              items={["ALL", "WATCHLIST", "MACRO", "REDDIT", "CRYPTO"]}
+              selected={newsTab}
+              onSelect={(index) => {
+                setNewsTab(index);
+                setNewsRow(0);
+              }}
+            />
+            <div className="mt-2.5 space-y-[3px] overflow-hidden">
+              {activeHeadlines.map((item, index) => (
                 <button
-                  key={item.id}
+                  key={item[1] + item[0]}
                   type="button"
-                  onClick={() => setWorkspace(item.id)}
-                  title={!sidebarOpen ? item.label : undefined}
-                  className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs transition ${active ? "bg-[#f2b84b]/10 text-[#f2b84b]" : "text-[#7b8592] hover:bg-white/[0.045] hover:text-[#d8dde4]"}`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {sidebarOpen && <span>{item.label}</span>}
-                </button>
-              );
-            })}
-          </nav>
-          <div className="space-y-1 border-t border-white/[0.08] p-2">
-            {[
-              { label: "Settings", icon: Settings },
-              { label: "Shortcuts", icon: CircleHelp },
-            ].map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs text-[#6f7884] hover:bg-white/[0.045] hover:text-white"
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {sidebarOpen && item.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setSidebarOpen((open) => !open)}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs text-[#6f7884] hover:bg-white/[0.045] hover:text-white"
-            >
-              <PanelLeftClose
-                className={`h-4 w-4 shrink-0 transition ${sidebarOpen ? "" : "rotate-180"}`}
-              />
-              {sidebarOpen && "Collapse"}
-            </button>
-          </div>
-        </aside>
-
-        <main className="min-w-0 flex-1 overflow-hidden">
-          <section className="border-b border-white/[0.08] bg-[#0b0e13] px-4 py-3 sm:px-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleStar(symbol)}
-                  aria-label={`${starred.includes(symbol) ? "Remove" : "Add"} ${symbol} ${starred.includes(symbol) ? "from" : "to"} watchlist`}
-                >
-                  <Star
-                    className={`h-4 w-4 ${starred.includes(symbol) ? "fill-[#f2b84b] text-[#f2b84b]" : "text-[#56606d]"}`}
-                  />
-                </button>
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <h1 className="font-mono text-base font-semibold text-white">{symbol}</h1>
-                    <span className="text-xs text-[#697380]">{instrument.name}</span>
-                  </div>
-                  <p className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-[#505965]">
-                    NASDAQ · USD · Real-time
-                  </p>
-                </div>
-              </div>
-              <div className="ml-auto flex items-baseline gap-2">
-                <span className="font-mono text-xl font-medium tabular-nums text-[#f3f5f7]">
-                  {formatPrice(instrument.price, symbol)}
-                </span>
-                <span
-                  className={`font-mono text-xs ${instrument.change >= 0 ? "text-[#68d391]" : "text-[#f47b7b]"}`}
-                >
-                  {instrument.change >= 0 ? "+" : ""}
-                  {instrument.change.toFixed(2)}%
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <div
-            className={`grid min-h-[calc(100vh-7.6rem)] ${agentOpen ? "xl:grid-cols-[minmax(0,1fr)_310px]" : "grid-cols-1"}`}
-          >
-            <div className="min-w-0">
-              <div className="grid border-b border-white/[0.08] md:grid-cols-[minmax(0,1fr)_220px]">
-                <section
-                  className="min-w-0 border-b border-white/[0.08] p-4 md:border-b-0 md:border-r sm:p-5"
-                  aria-label={`${symbol} price chart`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-[#596370]">
-                        Price performance
-                      </p>
-                      <div className="mt-1 flex items-center gap-2 font-mono text-xs text-[#7b8592]">
-                        {instrument.change >= 0 ? (
-                          <TrendingUp className="h-3.5 w-3.5 text-[#68d391]" />
-                        ) : (
-                          <TrendingDown className="h-3.5 w-3.5 text-[#f47b7b]" />
-                        )}
-                        <span
-                          className={instrument.change >= 0 ? "text-[#68d391]" : "text-[#f47b7b]"}
-                        >
-                          {instrument.change >= 0 ? "+" : ""}
-                          {instrument.change.toFixed(2)}%
-                        </span>
-                        <span>selected range</span>
-                      </div>
-                    </div>
-                    <div className="flex rounded-md bg-white/[0.035] p-0.5">
-                      {(["1D", "1W", "1M", "3M", "1Y"] as RangeKey[]).map((item) => (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => setRange(item)}
-                          className={`rounded px-2 py-1 font-mono text-[10px] transition ${range === item ? "bg-[#272d35] text-white" : "text-[#626c78] hover:text-white"}`}
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-5 h-[260px] w-full sm:h-[310px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={chartData}
-                        margin={{ top: 8, right: 4, left: -14, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="apetermChart" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#f2b84b" stopOpacity={0.22} />
-                            <stop offset="100%" stopColor="#f2b84b" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid stroke="rgba(255,255,255,0.055)" vertical={false} />
-                        <XAxis
-                          dataKey="label"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "#596370", fontSize: 10, fontFamily: "JetBrains Mono" }}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis
-                          domain={["dataMin - 2", "dataMax + 2"]}
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "#596370", fontSize: 10, fontFamily: "JetBrains Mono" }}
-                          width={54}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            background: "#12171d",
-                            border: "1px solid rgba(255,255,255,.1)",
-                            borderRadius: 6,
-                            fontSize: 11,
-                          }}
-                          labelStyle={{ color: "#7b8592" }}
-                          formatter={(value) => [formatPrice(Number(value), symbol), symbol]}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="price"
-                          stroke="#f2b84b"
-                          strokeWidth={1.6}
-                          fill="url(#apetermChart)"
-                          activeDot={{ r: 3, fill: "#f2b84b", stroke: "#080b0f" }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3 border-t border-white/[0.07] pt-4">
-                    <Metric
-                      label="Open"
-                      value={formatPrice(instrument.price / (1 + instrument.change / 100), symbol)}
-                    />
-                    <Metric label="High" value={formatPrice(instrument.high, symbol)} />
-                    <Metric label="Low" value={formatPrice(instrument.low, symbol)} />
-                    <Metric label="Volume" value={instrument.volume} />
-                  </div>
-                </section>
-
-                <section className="bg-[#090c11] p-3" aria-labelledby="watchlist-title">
-                  <div className="mb-2 flex items-center justify-between px-1">
-                    <h2
-                      id="watchlist-title"
-                      className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#727c88]"
-                    >
-                      Watchlist
-                    </h2>
-                    <button
-                      type="button"
-                      className="rounded p-1 text-[#5d6773] hover:bg-white/[0.06] hover:text-white"
-                      aria-label="Add symbol"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <div className="space-y-0.5">
-                    {watchlist.map((item) => (
-                      <button
-                        key={item.symbol}
-                        type="button"
-                        onClick={() => setSymbol(item.symbol)}
-                        className={`grid w-full grid-cols-[1fr_auto] rounded-md px-2.5 py-2 text-left transition ${symbol === item.symbol ? "bg-[#f2b84b]/10" : "hover:bg-white/[0.04]"}`}
-                      >
-                        <span className="font-mono text-xs font-medium text-[#d9dee4]">
-                          {item.symbol}
-                        </span>
-                        <span className="font-mono text-[11px] tabular-nums text-[#aab1bb]">
-                          {item.price}
-                        </span>
-                        <span className="mt-0.5 text-[10px] text-[#57616e]">
-                          {instruments[item.symbol].name}
-                        </span>
-                        <span
-                          className={`mt-0.5 font-mono text-[10px] ${item.change >= 0 ? "text-[#68d391]" : "text-[#f47b7b]"}`}
-                        >
-                          {item.change >= 0 ? "+" : ""}
-                          {item.change.toFixed(2)}%
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    className="mt-3 flex w-full items-center justify-center gap-1 border-t border-white/[0.06] pt-3 text-[10px] text-[#626c78] hover:text-white"
-                  >
-                    All instruments <ChevronDown className="h-3 w-3" />
-                  </button>
-                </section>
-              </div>
-
-              <div className="grid lg:grid-cols-[minmax(0,1.5fr)_minmax(260px,1fr)]">
-                <section
-                  className="border-b border-white/[0.08] p-4 lg:border-b-0 lg:border-r sm:p-5"
-                  aria-labelledby="news-title"
-                >
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h2 id="news-title" className="text-xs font-semibold text-[#dce1e8]">
-                        Market intelligence
-                      </h2>
-                      <p className="mt-0.5 text-[10px] text-[#5e6875]">
-                        Ranked by relevance to your watchlist
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      {(["All", "Watchlist", "Filings"] as const).map((filter) => (
-                        <button
-                          key={filter}
-                          type="button"
-                          onClick={() => setNewsFilter(filter)}
-                          className={`rounded px-2 py-1 text-[10px] ${newsFilter === filter ? "bg-[#272d35] text-white" : "text-[#697380] hover:text-white"}`}
-                        >
-                          {filter}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="divide-y divide-white/[0.06]">
-                    {filteredNews.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSymbol(item.symbol as SymbolKey)}
-                        className="grid w-full grid-cols-[52px_1fr_auto] gap-3 py-3 text-left group"
-                      >
-                        <span className="font-mono text-[10px] text-[#596370]">{item.time}</span>
-                        <span>
-                          <span className="block text-xs leading-relaxed text-[#bdc4cd] transition group-hover:text-white">
-                            {item.title}
-                          </span>
-                          <span className="mt-1 block font-mono text-[9px] uppercase tracking-wider text-[#56606d]">
-                            {item.source} · {item.symbol}
-                          </span>
-                        </span>
-                        <span
-                          className={`mt-0.5 h-fit rounded-sm px-1.5 py-0.5 font-mono text-[8px] uppercase ${item.priority === "High" ? "bg-[#f2b84b]/10 text-[#f2b84b]" : "bg-white/[0.04] text-[#697380]"}`}
-                        >
-                          {item.priority}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="p-4 sm:p-5" aria-labelledby="brief-title">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 id="brief-title" className="text-xs font-semibold text-[#dce1e8]">
-                        Today
-                      </h2>
-                      <p className="mt-0.5 text-[10px] text-[#5e6875]">Sunday, July 26</p>
-                    </div>
-                    <CalendarDays className="h-4 w-4 text-[#68727e]" />
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {[
-                      { time: "14:00", label: "US new home sales", type: "MACRO" },
-                      { time: "AFT", label: "Tesla earnings call", type: "TSLA" },
-                      { time: "AFT", label: "Microsoft earnings", type: "MSFT" },
-                    ].map((event) => (
-                      <div
-                        key={`${event.time}-${event.label}`}
-                        className="grid grid-cols-[38px_1fr] gap-3"
-                      >
-                        <span className="font-mono text-[9px] text-[#5f6975]">{event.time}</span>
-                        <div className="border-l border-white/[0.09] pl-3">
-                          <p className="text-[11px] text-[#b9c0ca]">{event.label}</p>
-                          <p className="mt-1 font-mono text-[8px] text-[#f2b84b]">{event.type}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-5 border-t border-white/[0.07] pt-4">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-3.5 w-3.5 text-[#707a86]" />
-                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-[#707a86]">
-                        Quick note
-                      </h3>
-                    </div>
-                    <textarea
-                      className="mt-2 min-h-20 w-full resize-none rounded-md border border-white/[0.07] bg-white/[0.025] p-2.5 text-[11px] leading-relaxed text-[#b7bec7] outline-none placeholder:text-[#4e5763] focus:border-[#f2b84b]/40"
-                      placeholder={`Write a note about ${symbol}…`}
-                    />
-                  </div>
-                </section>
-              </div>
-            </div>
-
-            {agentOpen && (
-              <aside
-                className="border-l border-white/[0.08] bg-[#0a0d12]"
-                aria-labelledby="agent-title"
-              >
-                <div className="flex h-12 items-center border-b border-white/[0.08] px-4">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-[#f2b84b]" />
-                    <h2 id="agent-title" className="text-xs font-semibold text-[#dce1e8]">
-                      Ape analyst
-                    </h2>
-                  </div>
-                  <span className="ml-2 h-1.5 w-1.5 rounded-full bg-[#68d391]" />
-                  <button
-                    type="button"
-                    onClick={() => setAgentOpen(false)}
-                    className="ml-auto rounded p-1 text-[#5f6975] hover:bg-white/[0.06] hover:text-white"
-                    aria-label="Close analyst panel"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <div className="flex h-[calc(100vh-10.6rem)] min-h-[520px] flex-col">
-                  <div className="flex-1 space-y-4 overflow-y-auto p-4">
-                    <div className="rounded-md border border-[#f2b84b]/10 bg-[#f2b84b]/[0.035] p-3">
-                      <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-[#f2b84b]">
-                        <Gauge className="h-3 w-3" /> Context
-                      </div>
-                      <p className="mt-2 text-[10px] leading-relaxed text-[#76808c]">
-                        Reading {symbol} price action, 4 related headlines, and today’s market
-                        calendar.
-                      </p>
-                    </div>
-                    {messages.map((message, index) => (
-                      <div
-                        key={`${message.role}-${index}`}
-                        className={message.role === "you" ? "pl-6" : "pr-2"}
-                      >
-                        <p className="mb-1.5 font-mono text-[9px] uppercase tracking-wider text-[#5e6875]">
-                          {message.role}
-                        </p>
-                        <div
-                          className={`rounded-md p-3 text-[11px] leading-[1.65] ${message.role === "you" ? "bg-[#242a32] text-[#d9dee5]" : "border border-white/[0.07] bg-white/[0.025] text-[#aeb6c0]"}`}
-                        >
-                          {message.body}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <form onSubmit={sendMessage} className="border-t border-white/[0.08] p-3">
-                    <label htmlFor="agent-input" className="sr-only">
-                      Ask Ape analyst
-                    </label>
-                    <div className="rounded-md border border-white/[0.09] bg-white/[0.025] p-2 focus-within:border-[#f2b84b]/40">
-                      <textarea
-                        id="agent-input"
-                        value={agentInput}
-                        onChange={(event) => setAgentInput(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" && !event.shiftKey)
-                            event.currentTarget.form?.requestSubmit();
-                        }}
-                        rows={3}
-                        className="w-full resize-none bg-transparent text-[11px] leading-relaxed text-[#d7dce3] outline-none placeholder:text-[#4f5864]"
-                        placeholder={`Ask about ${symbol}…`}
-                      />
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[8px] text-[#4f5864]">
-                          ↵ send · ⇧↵ newline
-                        </span>
-                        <button
-                          type="submit"
-                          className="rounded bg-[#f2b84b] p-1.5 text-[#15100a] transition hover:bg-[#ffd176]"
-                          aria-label="Send message"
-                        >
-                          <Send className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-center text-[8px] text-[#48515d]">
-                      Research assistance only · verify before trading
-                    </p>
-                  </form>
-                </div>
-              </aside>
-            )}
-          </div>
-        </main>
-      </div>
-
-      {!agentOpen && (
-        <button
-          type="button"
-          onClick={() => setAgentOpen(true)}
-          className="fixed bottom-5 right-5 z-20 flex items-center gap-2 rounded-full bg-[#f2b84b] px-4 py-2.5 text-xs font-medium text-[#15100a] shadow-2xl hover:bg-[#ffd176]"
-        >
-          <Bot className="h-4 w-4" /> Ask Ape
-        </button>
-      )}
-
-      {mobileNavOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 lg:hidden"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.currentTarget === event.target) setMobileNavOpen(false);
-          }}
-        >
-          <aside
-            className="h-full w-72 border-r border-white/10 bg-[#0a0d12] p-3"
-            aria-label="Mobile navigation"
-          >
-            <div className="mb-4 flex items-center justify-between px-2 py-1">
-              <span className="font-mono text-sm text-white">workspaces</span>
-              <button
-                type="button"
-                onClick={() => setMobileNavOpen(false)}
-                className="rounded p-2 text-[#78818d]"
-                aria-label="Close navigation"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  setWorkspace(item.id);
-                  setMobileNavOpen(false);
-                }}
-                className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-xs ${workspace === item.id ? "bg-[#f2b84b]/10 text-[#f2b84b]" : "text-[#84909c]"}`}
-              >
-                <item.icon className="h-4 w-4" /> {item.label}
-              </button>
-            ))}
-          </aside>
-        </div>
-      )}
-
-      {paletteOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 px-4 pt-[12vh] backdrop-blur-sm"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.currentTarget === event.target) setPaletteOpen(false);
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="palette-title"
-            className="w-full max-w-xl overflow-hidden rounded-xl border border-white/[0.12] bg-[#11151b] shadow-2xl"
-          >
-            <div className="flex items-center gap-3 border-b border-white/[0.08] px-4">
-              <Search className="h-4 w-4 text-[#f2b84b]" />
-              <label id="palette-title" htmlFor="palette-search" className="sr-only">
-                Command palette
-              </label>
-              <input
-                id="palette-search"
-                autoFocus
-                className="h-12 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[#56606c]"
-                placeholder="Search a ticker or run a command…"
-              />
-              <kbd className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[9px] text-[#66707c]">
-                ESC
-              </kbd>
-            </div>
-            <div className="p-2">
-              <p className="px-2 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[#56606c]">
-                Quick actions
-              </p>
-              {[
-                {
-                  label: "Open market overview",
-                  detail: "Workspace",
-                  icon: LayoutDashboard,
-                  action: () => setWorkspace("overview"),
-                },
-                {
-                  label: "Ask Ape analyst",
-                  detail: "AI research",
-                  icon: MessageSquareText,
-                  action: () => setAgentOpen(true),
-                },
-                {
-                  label: "Search instruments",
-                  detail: "Stocks & ETFs",
-                  icon: Search,
-                  action: () => setWorkspace("markets"),
-                },
-                {
-                  label: "Read SEC filings",
-                  detail: "Primary sources",
-                  icon: BookOpen,
-                  action: () => setNewsFilter("Filings"),
-                },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => {
-                    item.action();
-                    setPaletteOpen(false);
+                  onClick={() => setNewsRow(index)}
+                  onDoubleClick={() => {
+                    const url = activeNewsItems?.[index]?.url;
+                    if (url) window.open(url, "_blank", "noopener,noreferrer");
                   }}
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left hover:bg-white/[0.05]"
+                  className={`grid w-full grid-cols-[38px_84px_48px_minmax(0,1fr)] gap-2 whitespace-nowrap text-left ${newsRow === index ? "bg-[#181818]" : ""}`}
                 >
-                  <item.icon className="h-4 w-4 text-[#737d89]" />
-                  <span className="text-xs text-[#d2d7de]">{item.label}</span>
-                  <span className="ml-auto text-[10px] text-[#59636f]">{item.detail}</span>
+                  <span className="text-[#909090]">{item[0]}</span>
+                  <span className="truncate text-[#909090]">{item[1]}</span>
+                  <span className="font-bold text-[#34d399]">{item[2]}</span>
+                  <span className="truncate">{item[3]}</span>
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-4 border-t border-white/[0.07] px-4 py-2 font-mono text-[8px] text-[#525c68]">
-              <span>↑↓ navigate</span>
-              <span>↵ select</span>
-              <span className="ml-auto flex items-center gap-1">
-                <Command className="h-2.5 w-2.5" /> K anytime
-              </span>
+            <p
+              className={`mt-2 text-right ${liveNews.isError ? "text-[#f87171]" : "text-[#909090]"}`}
+            >
+              {liveNews.isPending
+                ? "○ loading feed"
+                : liveNews.isError
+                  ? "! feed unavailable · cached sample"
+                  : `● live · ${activeNewsItems?.length ?? 0} stories`}
+            </p>
+          </Window>
+
+          <Window id="watchlist" onFocus={setFocused}>
+            <PanelTitle title=" watchlist " active={focused === "watchlist"} />
+            <Tabs
+              items={["MAIN", "CRYPTO"]}
+              selected={watchTab}
+              onSelect={(index) => {
+                setWatchTab(index);
+                setQuoteRow(0);
+              }}
+            />
+            <div className="mt-2.5 grid grid-cols-[68px_80px_80px_68px_42px] gap-x-2 text-[#8f8f8f]">
+              <span>symbol</span>
+              <span className="text-right">price</span>
+              <span className="text-right">change</span>
+              <span className="text-right">volume</span>
+              <span className="text-right">rvol</span>
             </div>
-          </section>
+            <div className="mt-1 space-y-[2px]">
+              {activeQuotes.map((row, index) => (
+                <button
+                  key={row[0]}
+                  type="button"
+                  onClick={() => setQuoteRow(index)}
+                  className={`grid w-full grid-cols-[68px_80px_80px_68px_42px] gap-x-2 text-left ${quoteRow === index ? "bg-[#181818]" : ""}`}
+                >
+                  <span className="font-bold">
+                    {row[0]}
+                    {index === quoteRow ? <span className="ml-1 text-[#d0d0d0]">•</span> : null}
+                  </span>
+                  <span className="text-right">{row[1]}</span>
+                  <span
+                    className={`text-right ${row[2].startsWith("+") ? "text-[#34d399]" : "text-[#f87171]"}`}
+                  >
+                    {row[2].startsWith("+") ? "▲ " : "▼ "}
+                    {row[2]}
+                  </span>
+                  <span className="text-right text-[#909090]">{row[3]}</span>
+                  <span className="text-right text-[#909090]">{row[4]}</span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-right text-[#909090]">
+              {market.isPending
+                ? "○ loading market"
+                : market.isError
+                  ? "! market unavailable · cached sample"
+                  : watchTab === 0
+                    ? `● yfinance · ${stockStreamStatus.replaceAll("_", " ")} · 1s`
+                    : `● binance · ${cryptoStreamStatus}`}
+            </p>
+          </Window>
+
+          <Window id="sec" onFocus={setFocused}>
+            <PanelTitle title=" sec " active={focused === "sec"} />
+            <Tabs
+              items={["INSTITUTIONAL", "CEOS", "CONGRESS"]}
+              selected={secTab}
+              onSelect={(index) => {
+                setSecTab(index);
+                setSecRow(0);
+              }}
+            />
+            <div className="mt-2.5 grid h-[calc(100%-55px)] grid-cols-[42%_1fr] gap-3 overflow-hidden">
+              <div className="space-y-[3px] border-r border-[#3a3a3a] pr-3">
+                {activeSecFeed.map((row, index) => (
+                  <button
+                    key={row[0]}
+                    type="button"
+                    onClick={() => setSecRow(index)}
+                    className={`block w-full truncate text-left ${safeSecRow === index ? "bg-[#181818] font-bold" : ""}`}
+                  >
+                    <span className="mr-2 text-[#34d399]">▲</span>
+                    {row[0]}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <p className="font-bold">{activeSecFeed[safeSecRow][0]}</p>
+                <p className="mt-1 text-[#909090]">
+                  {secTab === 0 && selectedSecEntity
+                    ? `13F value ${compactNumber(selectedSecEntity.totalValueUsd, true)} · Positions ${selectedSecEntity.positions} · ${selectedSecEntity.filing.reportDate}`
+                    : secTab === 0
+                      ? `${activeSecFeed[safeSecRow][1]} value ${activeSecFeed[safeSecRow][2]} · Positions ${activeSecFeed[safeSecRow][3]}`
+                      : secTab === 1
+                        ? `${activeSecFeed[safeSecRow][1]} · disclosed ${activeSecFeed[safeSecRow][2]} · ${activeSecFeed[safeSecRow][3]}`
+                        : `${activeSecFeed[safeSecRow][1]} · range ${activeSecFeed[safeSecRow][2]} · filed ${activeSecFeed[safeSecRow][3]} ago`}
+                </p>
+                <div className="mt-4 grid grid-cols-[1fr_64px_48px] gap-x-2">
+                  {secTab === 0 && selectedSecEntity ? (
+                    selectedSecEntity.holdings.slice(0, 7).map((holding, index) => (
+                      <button
+                        key={`${holding.cusip}-${index}`}
+                        type="button"
+                        onClick={() =>
+                          window.open(
+                            selectedSecEntity.filing.documentUrl,
+                            "_blank",
+                            "noopener,noreferrer",
+                          )
+                        }
+                        className="col-span-3 grid grid-cols-subgrid text-left hover:bg-[#181818]"
+                      >
+                        <span className="truncate" title={holding.issuer}>
+                          {holding.symbol}
+                        </span>
+                        <span className="text-right">{compactNumber(holding.valueUsd, true)}</span>
+                        <span className="text-right text-[#909090]">
+                          {holding.weight.toFixed(1)}%
+                        </span>
+                      </button>
+                    ))
+                  ) : secTab === 0 ? (
+                    <>
+                      <span>APPLE INC</span>
+                      <span className="text-right">300.0M</span>
+                      <span className="text-right text-[#909090]">28.1%</span>
+                      <span>AMERICAN EXPRESS</span>
+                      <span className="text-right">151.6M</span>
+                      <span className="text-right text-[#909090]">15.4%</span>
+                      <span>COCA COLA CO</span>
+                      <span className="text-right">400.0M</span>
+                      <span className="text-right text-[#909090]">9.8%</span>
+                      <span>OCCIDENTAL PET</span>
+                      <span className="text-right">264.9M</span>
+                      <span className="text-right text-[#34d399]">New</span>
+                    </>
+                  ) : secTab === 1 ? (
+                    <>
+                      <span>FORM 4</span>
+                      <span className="text-right">SELL</span>
+                      <span className="text-right text-[#f87171]">filed</span>
+                      <span>COMMON STOCK</span>
+                      <span className="text-right">50,000</span>
+                      <span className="text-right text-[#909090]">shares</span>
+                      <span>AVG PRICE</span>
+                      <span className="text-right">$242.12</span>
+                      <span className="text-right text-[#909090]">USD</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>NVDA</span>
+                      <span className="text-right">BUY</span>
+                      <span className="text-right text-[#34d399]">$1M–5M</span>
+                      <span>AVGO</span>
+                      <span className="text-right">BUY</span>
+                      <span className="text-right text-[#34d399]">$250K</span>
+                      <span>V</span>
+                      <span className="text-right">SELL</span>
+                      <span className="text-right text-[#f87171]">$100K</span>
+                    </>
+                  )}
+                </div>
+                {secTab === 0 && (
+                  <p
+                    className={`mt-3 text-right ${sec.isError ? "text-[#f87171]" : "text-[#909090]"}`}
+                  >
+                    {sec.isPending
+                      ? "○ loading EDGAR"
+                      : sec.isError
+                        ? "! EDGAR unavailable · cached sample"
+                        : sec.data?.errors.length
+                          ? "◐ cached 13F · EDGAR retrying"
+                          : `● 13F holdings · filed ${selectedSecEntity?.filing.filedAt ?? "—"}`}
+                  </p>
+                )}
+              </div>
+            </div>
+          </Window>
+
+          <Window id="notes" onFocus={setFocused}>
+            <PanelTitle title=" notes " active={focused === "notes"} />
+            <Tabs
+              items={["ALL", "TICKERS", "JOURNAL", "PINNED"]}
+              selected={notesTab}
+              onSelect={(index) => {
+                setNotesTab(index);
+                setNoteRow(0);
+              }}
+            />
+            <div className="mt-2.5 space-y-[3px]">
+              {activeNotes.map((row, index) => (
+                <button
+                  key={row[1] + row[2]}
+                  type="button"
+                  onClick={() => setNoteRow(index)}
+                  className={`grid w-full grid-cols-[18px_48px_52px_minmax(0,1fr)] gap-2 whitespace-nowrap text-left ${noteRow === index ? "bg-[#181818]" : ""}`}
+                >
+                  <span>{row[0]}</span>
+                  <span className="text-right text-[#909090]">{row[1]}</span>
+                  <span className={row[2] === "—" ? "text-[#909090]" : "font-bold text-[#34d399]"}>
+                    {row[2]}
+                  </span>
+                  <span className="truncate">{row[3]}</span>
+                </button>
+              ))}
+            </div>
+          </Window>
+        </main>
+
+        {agentOpen && (
+          <aside className="flex w-[32%] min-w-[300px] max-w-[440px] flex-col px-4 py-3">
+            <div className="flex h-[25px] items-start gap-3 font-bold">
+              <span>agent</span>
+              <span className="text-[#34d399]">●</span>
+              <span className="font-normal text-[#909090]">openrouter/free</span>
+            </div>
+            <div className="flex-1 overflow-y-auto pt-3">
+              {agentMessages.length === 0 ? (
+                <>
+                  <p className="font-bold">Ask something and I'll take a look.</p>
+                  <div className="mt-5 space-y-3 text-[#909090]">
+                    <p>What's moving in my watchlist?</p>
+                    <p>Summarize the latest NVDA news.</p>
+                    <p>Compare AAPL and MSFT fundamentals.</p>
+                  </div>
+                </>
+              ) : (
+                agentMessages.map((message) => (
+                  <div key={message} className="mb-4">
+                    <p className="text-[#909090]">you</p>
+                    <p className="mt-1">{message}</p>
+                    <p className="mt-3 text-[#909090]">ape</p>
+                    <p className="mt-1">
+                      I’m using the current dashboard context for this browser prototype.
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+            <form onSubmit={submitAgent} className="border-t border-[#909090] pt-1">
+              <label htmlFor="agent" className="sr-only">
+                Ask agent
+              </label>
+              <div className="flex">
+                <span className="mr-2 text-[#d0d0d0]">❯</span>
+                <input
+                  id="agent"
+                  value={agentInput}
+                  onChange={(event) => setAgentInput(event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#909090]"
+                  placeholder="Ask anything..."
+                />
+              </div>
+              <p className="mt-1 text-[#909090]">⏎ send esc close</p>
+            </form>
+          </aside>
+        )}
+      </div>
+
+      <footer className="h-[22px] overflow-hidden whitespace-nowrap bg-[#0c0c0c] px-1 text-[11px] leading-[22px] text-[#777]">
+        [a] agent&nbsp;&nbsp; [/] search&nbsp;&nbsp; [,] settings&nbsp;&nbsp; [E]
+        simple/pro&nbsp;&nbsp; [ctrl+p] spotlight&nbsp;&nbsp; [?] help&nbsp;&nbsp; [q] quit
+        {focused === "news" && (
+          <span>
+            &nbsp;&nbsp; [←/→] filter&nbsp;&nbsp; [j/k] move&nbsp;&nbsp; [enter]
+            open/toggle&nbsp;&nbsp; [o] browser&nbsp;&nbsp; [r] refresh
+          </span>
+        )}
+      </footer>
+
+      {overlay && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/40 p-4"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setOverlay(null);
+          }}
+        >
+          <div className="w-full max-w-[620px] border border-[#d0d0d0] bg-[#0c0c0c] p-1 text-[12px] shadow-[0_0_0_1px_#0c0c0c]">
+            {overlay === "search" && (
+              <div>
+                <p className="bg-[#e8e8e8] px-1 font-bold text-[#0c0c0c]">search instruments</p>
+                <>
+                  <div className="flex border-b border-[#3a3a3a] px-2 py-3">
+                    <span className="mr-2">❯</span>
+                    <input
+                      ref={searchRef}
+                      aria-label="Search instruments"
+                      value={searchQuery}
+                      onChange={(event) => {
+                        setSearchQuery(event.target.value);
+                        setSearchRow(0);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "ArrowDown" && searchResults.length) {
+                          event.preventDefault();
+                          setSearchRow((row) => (row + 1) % searchResults.length);
+                        } else if (event.key === "ArrowUp" && searchResults.length) {
+                          event.preventDefault();
+                          setSearchRow(
+                            (row) => (row - 1 + searchResults.length) % searchResults.length,
+                          );
+                        } else if (event.key === "Enter" && searchResults[safeSearchRow]) {
+                          event.preventDefault();
+                          setChartTimeframe("3m");
+                          setSelectedInstrument(searchResults[safeSearchRow]);
+                        }
+                      }}
+                      className="min-w-0 flex-1 bg-transparent outline-none"
+                      placeholder="symbol or company name"
+                    />
+                  </div>
+                  <div className="min-h-[120px] max-h-[310px] overflow-y-auto py-1">
+                    {!searchQuery.trim() ? (
+                      <p className="px-2 py-5 text-center text-[#909090]">
+                        Search standard U.S. stocks and ETFs
+                      </p>
+                    ) : instrumentSearch.isPending ? (
+                      <p className="px-2 py-5 text-center text-[#909090]">○ searching Yahoo</p>
+                    ) : instrumentSearch.isError ? (
+                      <p className="px-2 py-5 text-center text-[#f87171]">! search unavailable</p>
+                    ) : searchResults.length === 0 ? (
+                      <p className="px-2 py-5 text-center text-[#909090]">no instruments found</p>
+                    ) : (
+                      searchResults.map((result, index) => (
+                        <button
+                          key={`${result.symbol}-${result.exchange}`}
+                          type="button"
+                          onMouseEnter={() => setSearchRow(index)}
+                          onClick={() => {
+                            setChartTimeframe("3m");
+                            setSelectedInstrument(result);
+                          }}
+                          className={`grid w-full grid-cols-[90px_minmax(0,1fr)_90px_80px] gap-2 px-2 py-1 text-left ${safeSearchRow === index ? "bg-[#181818]" : ""}`}
+                        >
+                          <span className="font-bold text-[#34d399]">{result.symbol}</span>
+                          <span className="truncate">{result.name}</span>
+                          <span className="truncate text-[#909090]">{result.type}</span>
+                          <span className="truncate text-right text-[#909090]">
+                            {result.exchange}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                  <p className="border-t border-[#3a3a3a] px-2 py-2 text-[#909090]">
+                    ↑↓ select · enter open · esc close
+                  </p>
+                </>
+              </div>
+            )}
+            {overlay === "spotlight" && (
+              <div>
+                <p className="bg-[#e8e8e8] px-1 font-bold text-[#0c0c0c]"> Spotlight </p>
+                {[
+                  "Search instruments",
+                  "Open AI Agent Panel",
+                  "Portfolio",
+                  "Alerts",
+                  "Screener",
+                  "Compare",
+                  "Calendar",
+                  "Settings",
+                ].map((item, index) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onMouseEnter={() => setSpotlightRow(index)}
+                    onClick={() => {
+                      if (index === 0) {
+                        setSelectedInstrument(null);
+                        setOverlay("search");
+                        return;
+                      }
+                      if (index === 1) setAgentOpen(true);
+                      setOverlay(null);
+                    }}
+                    className={`block w-full px-2 py-1 text-left ${spotlightRow === index ? "bg-[#181818] font-bold" : ""}`}
+                  >
+                    {spotlightRow === index ? "> " : "  "}
+                    {item}
+                  </button>
+                ))}
+                <p className="mt-2 px-2 text-[#909090]">↑↓ navigate [enter] open [esc] close</p>
+              </div>
+            )}
+            {overlay === "settings" && (
+              <div>
+                <p className="bg-[#e8e8e8] px-1 font-bold text-[#0c0c0c]"> Settings </p>
+                <div className="grid grid-cols-2 gap-y-2 px-3 py-4">
+                  <span>Experience</span>
+                  <span>Pro</span>
+                  <span>Tone</span>
+                  <span>Normal</span>
+                  <span>Explanations</span>
+                  <span>beginner</span>
+                  <span>Agent style</span>
+                  <span>Chat</span>
+                  <span>Language</span>
+                  <span>English</span>
+                  <span>Theme</span>
+                  <span>Dark</span>
+                </div>
+                <p className="px-2 pb-2 text-[#909090]">[j/k] move [enter] change [esc] back</p>
+              </div>
+            )}
+            {overlay === "help" && (
+              <div>
+                <p className="bg-[#e8e8e8] px-1 font-bold text-[#0c0c0c]"> keys </p>
+                <div className="grid grid-cols-[180px_1fr] gap-y-1 px-3 py-4">
+                  <span>tab / shift+tab</span>
+                  <span>focus next / previous</span>
+                  <span>h j k l</span>
+                  <span>move focus</span>
+                  <span>ctrl+h/j/k/l</span>
+                  <span>resize focused pane</span>
+                  <span>ctrl+c</span>
+                  <span>change focused pane</span>
+                  <span>/</span>
+                  <span>search instruments</span>
+                  <span>a</span>
+                  <span>agent</span>
+                  <span>esc</span>
+                  <span>close help</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
