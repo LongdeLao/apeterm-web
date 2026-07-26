@@ -105,7 +105,7 @@ function Index() {
                     href="https://app.apeterm.com"
                     className="text-sm font-medium underline decoration-[#171714]/35 underline-offset-4 hover:decoration-[#171714]"
                   >
-                    Sign in to web
+                    Open workspace
                   </a>
                 </div>
               </motion.div>
@@ -220,7 +220,7 @@ function Index() {
                   href="https://app.apeterm.com"
                   className="border border-[#171714] bg-[#171714] px-5 py-3 text-sm font-medium text-[#f2efe7]"
                 >
-                  Sign in
+                  Open workspace
                 </a>
                 <a
                   href="https://github.com/LongdeLao/apeterm"

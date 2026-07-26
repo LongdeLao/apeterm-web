@@ -52,7 +52,7 @@ export function PromoLayout({ children }: { children: ReactNode }) {
             href="https://app.apeterm.com"
             className="ml-auto inline-flex items-center gap-2 border border-[#171714] bg-[#171714] px-4 py-2 text-sm font-medium text-[#f2efe7] transition-colors hover:bg-[#f2efe7] hover:text-[#171714]"
           >
-            Sign in <ArrowUpRight className="h-3.5 w-3.5" />
+            Open workspace <ArrowUpRight className="h-3.5 w-3.5" />
           </a>
         </div>
       </header>

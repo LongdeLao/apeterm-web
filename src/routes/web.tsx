@@ -30,7 +30,7 @@ const capabilities = [
   [
     Cloud,
     "Available anywhere",
-    "Sign in from a modern browser and return to your account-backed workspace.",
+    "Open it from any modern browser and return to your account-backed workspace.",
   ],
 ] as const;
 
@@ -106,7 +106,7 @@ function WebPage() {
               href="https://app.apeterm.com"
               className="mt-14 inline-flex items-center gap-2 bg-[#171714] px-5 py-3 text-sm text-[#f2efe7]"
             >
-              Sign in to the web app <ArrowUpRight className="h-4 w-4" />
+              Open the web workspace <ArrowUpRight className="h-4 w-4" />
             </a>
           </div>
         </section>

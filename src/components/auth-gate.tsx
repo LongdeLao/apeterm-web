@@ -45,6 +45,47 @@ function Logo() {
   );
 }
 
+/* Paper surface shared by the auth screen and the pre-session boot state, so the
+   first paint matches apeterm.com rather than flashing the dark app shell. */
+function PaperScreen({ children }: { children: ReactNode }) {
+  return (
+    <main className="flex min-h-screen flex-col bg-[#f2efe7] px-5 text-[#171714] sm:px-8">
+      <header className="flex min-h-16 items-center">
+        <a
+          href="https://apeterm.com"
+          className="font-mono text-sm font-semibold tracking-[0.02em] transition-opacity hover:opacity-70"
+        >
+          APETERM
+        </a>
+      </header>
+      <div className="flex flex-1 items-center justify-center pb-16">{children}</div>
+    </main>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" className="h-4 w-4">
+      <path
+        fill="#4285F4"
+        d="M45.1 24.5c0-1.6-.14-2.79-.44-4.02H24v7.3h12.1c-.24 1.98-1.56 4.96-4.48 6.96l-.04.27 6.5 5.04.45.04c4.14-3.82 6.57-9.45 6.57-15.59"
+      />
+      <path
+        fill="#34A853"
+        d="M24 46c5.91 0 10.87-1.95 14.5-5.3l-6.91-5.35c-1.85 1.29-4.33 2.19-7.59 2.19-5.79 0-10.71-3.82-12.46-9.1l-.26.02-6.76 5.23-.9.25C7.13 41.06 14.97 46 24 46"
+      />
+      <path
+        fill="#FBBC05"
+        d="M11.54 28.44A13.6 13.6 0 0 1 10.79 24c0-1.55.28-3.05.72-4.44l-.01-.3-6.85-5.31-.22.1A22 22 0 0 0 2 24c0 3.55.86 6.9 2.43 9.95z"
+      />
+      <path
+        fill="#EA4335"
+        d="M24 9.46c4.11 0 6.88 1.78 8.46 3.26l6.18-6.03C34.85 3.14 29.91 1 24 1 14.97 1 7.13 5.94 3.43 13.12l7.68 5.96C12.89 13.28 17.81 9.46 24 9.46"
+      />
+    </svg>
+  );
+}
+
 function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) => void }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -91,114 +132,109 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) =
 
   if (!supabaseConfigured) {
     return (
-      <Screen>
-        <p className="text-[#f87171]">! Supabase is not configured</p>
-      </Screen>
+      <PaperScreen>
+        <p className="font-mono text-[13px] text-[#9a2f22]">Supabase is not configured.</p>
+      </PaperScreen>
     );
   }
 
+  const inputClass =
+    "h-11 w-full border border-[#171714]/25 bg-transparent px-3.5 text-[15px] text-[#171714] outline-none transition-colors placeholder:text-[#9a9488] focus:border-[#171714]";
+  const labelClass = "mb-2 block font-mono text-[10px] uppercase tracking-[0.16em] text-[#69645b]";
+
   return (
-    <main className="grid min-h-screen w-full bg-[#0c0c0c] font-sans text-[#f4f4f4] lg:grid-cols-2">
-      <section className="relative flex min-h-screen items-center justify-center px-6 py-24 sm:px-12">
-        <header className="absolute left-6 top-6 flex items-center gap-2 text-[14px] font-semibold tracking-[-0.02em] sm:left-10 sm:top-8">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#ededed] font-mono text-[12px] font-bold text-[#111]">
-            A
-          </span>
-          apeterm
-        </header>
+    <PaperScreen>
+      <div className="w-full max-w-[380px]">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#69645b]">
+          Web workspace
+        </p>
+        <h1 className="mt-4 text-[40px] font-semibold leading-[1.05] tracking-[-0.045em]">
+          {mode === "signin" ? "Open workspace" : "Create account"}
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-[#5d5850]">
+          {mode === "signin"
+            ? "Prices, filings, news and your notes on one screen."
+            : "Free, and it stays free. No card, no seat licence."}
+        </p>
 
-        <div className="w-full max-w-[420px]">
-          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
-            {mode === "signin" ? "Sign in" : "Create account"}
-          </h1>
+        <form onSubmit={submit} className="mt-9 space-y-5">
+          <label className="block">
+            <span className={labelClass}>Email</span>
+            <input
+              type="email"
+              autoComplete="email"
+              required
+              autoFocus
+              value={email}
+              placeholder="you@example.com"
+              onChange={(event) => setEmail(event.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label className="block">
+            <span className={labelClass}>Password</span>
+            <input
+              type="password"
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              required
+              minLength={8}
+              value={password}
+              placeholder={mode === "signin" ? "Enter your password" : "Minimum 8 characters"}
+              onChange={(event) => setPassword(event.target.value)}
+              className={inputClass}
+            />
+          </label>
 
-          <form onSubmit={submit} className="mt-8 space-y-5">
-            <label className="block">
-              <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Email</span>
-              <input
-                type="email"
-                autoComplete="email"
-                required
-                autoFocus
-                value={email}
-                placeholder="you@example.com"
-                onChange={(event) => setEmail(event.target.value)}
-                className="h-12 w-full rounded-lg border border-transparent bg-[#202020] px-4 text-[14px] text-white outline-none transition placeholder:text-[#686868] focus:border-[#505050] focus:bg-[#242424]"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-[13px] font-medium text-[#d2d2d2]">Password</span>
-              <input
-                type="password"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                required
-                minLength={8}
-                value={password}
-                placeholder={mode === "signin" ? "Enter your password" : "Minimum 8 characters"}
-                onChange={(event) => setPassword(event.target.value)}
-                className="h-12 w-full rounded-lg border border-transparent bg-[#202020] px-4 text-[14px] text-white outline-none transition placeholder:text-[#686868] focus:border-[#505050] focus:bg-[#242424]"
-              />
-            </label>
-
-            <div aria-live="polite">
-              {error && <p className="text-[13px] text-[#f87171]">{error}</p>}
-              {message && <p className="text-[13px] text-[#6ee7b7]">{message}</p>}
-            </div>
-
-            <button
-              type="submit"
-              disabled={busy !== null}
-              className="h-12 w-full rounded-lg bg-[#ededed] text-[14px] font-semibold text-[#111] transition hover:bg-white disabled:cursor-wait disabled:opacity-50"
-            >
-              {busy === "email"
-                ? "Connecting..."
-                : mode === "signin"
-                  ? "Sign in"
-                  : "Create account"}
-            </button>
-          </form>
-
-          <div className="my-7 flex items-center gap-4 text-[12px] text-[#686868]">
-            <span className="h-px flex-1 bg-[#2d2d2d]" />
-            or
-            <span className="h-px flex-1 bg-[#2d2d2d]" />
+          <div aria-live="polite" className="empty:hidden">
+            {error && <p className="text-[13px] leading-5 text-[#9a2f22]">{error}</p>}
+            {message && <p className="text-[13px] leading-5 text-[#2f6b4f]">{message}</p>}
           </div>
 
           <button
-            type="button"
-            onClick={() => void signInWithGoogle()}
+            type="submit"
             disabled={busy !== null}
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#303030] bg-[#181818] text-[14px] font-medium text-[#e5e5e5] transition hover:border-[#484848] hover:bg-[#1d1d1d] disabled:cursor-wait disabled:opacity-50"
+            className="h-11 w-full border border-[#171714] bg-[#171714] text-sm font-medium text-[#f2efe7] transition-colors hover:bg-transparent hover:text-[#171714] disabled:cursor-wait disabled:opacity-50 disabled:hover:bg-[#171714] disabled:hover:text-[#f2efe7]"
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[12px] font-bold text-[#222]">
-              G
-            </span>
-            {busy === "google" ? "Connecting..." : "Continue with Google"}
+            {busy === "email"
+              ? "Connecting..."
+              : mode === "signin"
+                ? "Open workspace"
+                : "Create account"}
           </button>
+        </form>
 
-          <p className="mt-8 text-center text-[13px] text-[#777]">
-            {mode === "signin" ? "New to ApeTerm?" : "Already have an account?"}{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === "signin" ? "signup" : "signin");
-                setError("");
-                setMessage("");
-              }}
-              className="font-medium text-[#e8e8e8] hover:text-white"
-            >
-              {mode === "signin" ? "Create account" : "Sign in"}
-            </button>
-          </p>
+        <div className="my-7 flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.16em] text-[#8b867c]">
+          <span className="h-px flex-1 bg-[#171714]/20" />
+          or
+          <span className="h-px flex-1 bg-[#171714]/20" />
         </div>
-      </section>
 
-      <aside className="hidden min-h-screen items-center justify-center border-l border-[#222] bg-[#080808] lg:flex">
-        <div className="scale-[1.9] text-[#b9b9b9]">
-          <Logo />
-        </div>
-      </aside>
-    </main>
+        <button
+          type="button"
+          onClick={() => void signInWithGoogle()}
+          disabled={busy !== null}
+          className="flex h-11 w-full items-center justify-center gap-2.5 border border-[#171714]/25 bg-transparent text-sm font-medium text-[#171714] transition-colors hover:border-[#171714] disabled:cursor-wait disabled:opacity-50"
+        >
+          <GoogleMark />
+          {busy === "google" ? "Connecting..." : "Continue with Google"}
+        </button>
+
+        <p className="mt-9 border-t border-[#171714]/20 pt-5 text-sm text-[#5d5850]">
+          {mode === "signin" ? "New to ApeTerm?" : "Already have an account?"}{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setError("");
+              setMessage("");
+            }}
+            className="font-medium text-[#171714] underline decoration-[#171714]/35 underline-offset-4 transition-colors hover:decoration-[#171714]"
+          >
+            {mode === "signin" ? "Create account" : "Sign in"}
+          </button>
+        </p>
+      </div>
+    </PaperScreen>
   );
 }
 
@@ -367,11 +403,19 @@ export function AuthGate({ children }: { children: ReactNode }) {
     [session, symbols],
   );
 
+  // Signed-in users are heading into the dark workspace, so keep the dark shell.
+  // Signed-out users are heading to the paper auth screen — match that instead.
   if (booting)
-    return (
+    return session ? (
       <Screen>
         <p className="text-[#909090]">○ opening secure session...</p>
       </Screen>
+    ) : (
+      <PaperScreen>
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#8b867c]">
+          Opening secure session…
+        </p>
+      </PaperScreen>
     );
   if (!session) return <AuthScreen onAuthenticated={setSession} />;
   if (!onboarded) return <Onboarding session={session} onDone={() => setOnboarded(true)} />;
