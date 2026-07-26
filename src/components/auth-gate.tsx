@@ -49,13 +49,13 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) =
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"email" | "google" | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    setBusy(true);
+    setBusy("email");
     setError("");
     setMessage("");
     const result =
@@ -66,13 +66,27 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) =
             password,
             options: { emailRedirectTo: window.location.origin },
           });
-    setBusy(false);
+    setBusy(null);
     if (result.error) {
       setError(result.error.message);
       return;
     }
     if (result.data.session) onAuthenticated(result.data.session);
     else setMessage("check your email to confirm the account, then sign in");
+  }
+
+  async function signInWithGoogle() {
+    setBusy("google");
+    setError("");
+    setMessage("");
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (oauthError) {
+      setError(oauthError.message);
+      setBusy(null);
+    }
   }
 
   if (!supabaseConfigured) {
@@ -84,71 +98,166 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Session) =
   }
 
   return (
-    <Screen>
-      <div className="w-full max-w-[390px]">
-        <Logo />
-        <div className="mt-10 border border-[#5b5b5b] bg-[#0c0c0c] p-1 text-[#e8e8e8]">
-          <div className="flex border-b border-[#5b5b5b]">
-            {(["signin", "signup"] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  setMode(item);
-                  setError("");
-                  setMessage("");
-                }}
-                className={`px-3 py-2 text-[11px] font-bold ${mode === item ? "bg-[#e8e8e8] text-[#0c0c0c]" : "text-[#8f8f8f]"}`}
-              >
-                {item === "signin" ? "SIGN IN" : "CREATE ACCOUNT"}
-              </button>
-            ))}
+    <main className="relative min-h-screen overflow-hidden bg-[#080908] font-mono text-[13px] text-[#e8e8e8]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:42px_42px]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-[#34d399]/[0.06] blur-[120px]"
+      />
+
+      <div className="relative mx-auto grid min-h-screen w-full max-w-[1180px] items-center gap-16 px-5 py-10 md:grid-cols-[1.08fr_0.92fr] md:px-10">
+        <section className="hidden md:block">
+          <div className="mb-12 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-[#7d827f]">
+            <span className="h-2 w-2 rounded-full bg-[#34d399] shadow-[0_0_14px_rgba(52,211,153,0.8)]" />
+            markets online
           </div>
-          <form onSubmit={submit} className="space-y-4 px-3 py-5">
-            <label className="block">
-              <span className="mb-1 block text-[#909090]">email</span>
-              <input
-                type="email"
-                autoComplete="email"
-                required
-                autoFocus
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full border-b border-[#5b5b5b] bg-transparent py-1 outline-none focus:border-[#e8e8e8]"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-[#909090]">password</span>
-              <input
-                type="password"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                required
-                minLength={8}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full border-b border-[#5b5b5b] bg-transparent py-1 outline-none focus:border-[#e8e8e8]"
-              />
-            </label>
-            {error && <p className="text-[#f87171]">! {error}</p>}
-            {message && <p className="text-[#34d399]">● {message}</p>}
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full bg-[#e8e8e8] px-3 py-2 font-bold text-[#0c0c0c] disabled:opacity-50"
-            >
-              {busy
-                ? "○ connecting..."
-                : mode === "signin"
-                  ? "↵ enter apeterm"
-                  : "↵ create account"}
-            </button>
-          </form>
-        </div>
-        <p className="mt-3 text-center text-[11px] text-[#777]">
-          secure session · powered by supabase
-        </p>
+          <div className="flex items-end gap-7">
+            <Logo />
+            <div className="mb-1 border-l border-[#343735] pl-6">
+              <h1 className="text-3xl font-bold tracking-[-0.05em] text-white">
+                Your market command line.
+              </h1>
+              <p className="mt-3 max-w-[460px] leading-6 text-[#8e9490]">
+                Live markets, filings, news and an AI research agent—built into one focused
+                terminal.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-12 border border-[#2f3330] bg-[#0b0d0c]/90 shadow-2xl shadow-black/40">
+            <div className="flex items-center justify-between border-b border-[#272a28] px-4 py-2 text-[10px] text-[#686e6a]">
+              <span>APTERM / MARKET PULSE</span>
+              <span>LIVE · 1S</span>
+            </div>
+            <div className="grid grid-cols-[1fr_auto_auto] gap-x-8 gap-y-3 px-4 py-4 text-[12px]">
+              <span className="text-[#a7aca9]">SPY</span>
+              <span>738.93</span>
+              <span className="text-[#34d399]">▲ +0.10%</span>
+              <span className="text-[#a7aca9]">NVDA</span>
+              <span>206.84</span>
+              <span className="text-[#f87171]">▼ -0.92%</span>
+              <span className="text-[#a7aca9]">BTC</span>
+              <span>64,383</span>
+              <span className="text-[#34d399]">▲ +0.32%</span>
+            </div>
+            <div className="border-t border-[#272a28] px-4 py-3 text-[11px] text-[#737975]">
+              <span className="text-[#34d399]">›</span> ask ape&nbsp;{" "}
+              <span className="text-[#aeb3b0]">what is moving the market today?</span>
+              <span className="ml-1 animate-pulse text-[#34d399]">▋</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto w-full max-w-[440px]">
+          <div className="mb-8 md:hidden">
+            <Logo />
+          </div>
+          <div className="border border-[#343835] bg-[#0d0f0e]/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+            <div className="flex items-center justify-between border-b border-[#292c2a] px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-[#747a76]">
+              <span>identity / secure access</span>
+              <span className="text-[#34d399]">● encrypted</span>
+            </div>
+            <div className="p-6 sm:p-8">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-[#6f7571]">
+                Welcome to ApeTerm
+              </p>
+              <h2 className="mt-2 text-xl font-bold text-white">
+                {mode === "signin" ? "Sign in to your terminal" : "Create your terminal"}
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => void signInWithGoogle()}
+                disabled={busy !== null}
+                className="mt-7 flex w-full items-center justify-center gap-3 border border-[#4b504c] bg-[#171a18] px-4 py-3 font-bold text-white transition hover:border-[#7b827d] hover:bg-[#1c201d] disabled:cursor-wait disabled:opacity-50"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white font-sans text-[12px] font-bold text-[#252525]">
+                  G
+                </span>
+                {busy === "google" ? "connecting to Google..." : "Continue with Google"}
+              </button>
+
+              <div className="my-6 flex items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-[#606561]">
+                <span className="h-px flex-1 bg-[#292c2a]" />
+                or use email
+                <span className="h-px flex-1 bg-[#292c2a]" />
+              </div>
+
+              <div className="mb-6 grid grid-cols-2 border border-[#2f3330] p-1">
+                {(["signin", "signup"] as const).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => {
+                      setMode(item);
+                      setError("");
+                      setMessage("");
+                    }}
+                    className={`px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition ${mode === item ? "bg-[#e8e8e8] text-[#0c0c0c]" : "text-[#747a76] hover:text-[#d7d9d8]"}`}
+                  >
+                    {item === "signin" ? "Sign in" : "Create account"}
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={submit} className="space-y-5">
+                <label className="block">
+                  <span className="mb-2 block text-[11px] text-[#858b87]">email_address</span>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    required
+                    autoFocus
+                    value={email}
+                    placeholder="you@example.com"
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="w-full border border-[#343835] bg-[#090a09] px-3 py-3 text-white outline-none placeholder:text-[#414542] focus:border-[#34d399] focus:shadow-[0_0_0_1px_rgba(52,211,153,0.15)]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-[11px] text-[#858b87]">password</span>
+                  <input
+                    type="password"
+                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                    required
+                    minLength={8}
+                    value={password}
+                    placeholder="minimum 8 characters"
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="w-full border border-[#343835] bg-[#090a09] px-3 py-3 text-white outline-none placeholder:text-[#414542] focus:border-[#34d399] focus:shadow-[0_0_0_1px_rgba(52,211,153,0.15)]"
+                  />
+                </label>
+                <div aria-live="polite">
+                  {error && (
+                    <p className="border-l-2 border-[#f87171] pl-3 text-[#f87171]">! {error}</p>
+                  )}
+                  {message && (
+                    <p className="border-l-2 border-[#34d399] pl-3 text-[#34d399]">● {message}</p>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={busy !== null}
+                  className="w-full bg-[#34d399] px-3 py-3 font-bold text-[#07110d] transition hover:bg-[#6ee7b7] disabled:cursor-wait disabled:opacity-50"
+                >
+                  {busy === "email"
+                    ? "○ establishing session..."
+                    : mode === "signin"
+                      ? "↵ enter apeterm"
+                      : "↵ create account"}
+                </button>
+              </form>
+            </div>
+          </div>
+          <p className="mt-4 text-center text-[10px] uppercase tracking-[0.1em] text-[#555b57]">
+            session secured by supabase · no brokerage connection required
+          </p>
+        </section>
       </div>
-    </Screen>
+    </main>
   );
 }
 
