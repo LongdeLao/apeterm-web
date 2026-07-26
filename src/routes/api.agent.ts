@@ -26,10 +26,26 @@ function allowed(request: Request) {
   return current.count <= 10;
 }
 
+async function authenticated(request: Request) {
+  const authorization = request.headers.get("authorization");
+  const supabaseUrl = process.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL;
+  const publishableKey =
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!authorization?.startsWith("Bearer ") || !supabaseUrl || !publishableKey) return false;
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { Authorization: authorization, apikey: publishableKey },
+    signal: AbortSignal.timeout(8_000),
+  }).catch(() => null);
+  return response?.ok === true;
+}
+
 export const Route = createFileRoute("/api/agent")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        if (!(await authenticated(request))) {
+          return Response.json({ error: "Sign in required." }, { status: 401 });
+        }
         if (!allowed(request)) {
           return Response.json({ error: "Too many requests. Try again shortly." }, { status: 429 });
         }
@@ -122,13 +138,14 @@ export const Route = createFileRoute("/api/agent")({
           );
         }
         const modelMessage = payload?.choices?.[0]?.message;
-        const actions = (modelMessage?.tool_calls ?? []).flatMap(
+        const actions: AgentAction[] = (modelMessage?.tool_calls ?? []).flatMap(
           (call: { function?: { name?: string; arguments?: string } }): AgentAction[] => {
             const name = call.function?.name;
             if (name !== "add_to_watchlist" && name !== "remove_from_watchlist") return [];
             try {
               const args = JSON.parse(call.function?.arguments ?? "{}") as { symbol?: unknown };
-              const symbol = typeof args.symbol === "string" ? args.symbol.trim().toUpperCase() : "";
+              const symbol =
+                typeof args.symbol === "string" ? args.symbol.trim().toUpperCase() : "";
               if (!/^[A-Z]{1,6}(?:-[A-Z])?$/.test(symbol)) return [];
               return [{ type: name, symbol }];
             } catch {
@@ -141,7 +158,7 @@ export const Route = createFileRoute("/api/agent")({
           typeof modelReply === "string" && modelReply.trim()
             ? modelReply.trim()
             : actions
-                .map((action) =>
+                .map((action: AgentAction) =>
                   action.type === "add_to_watchlist"
                     ? `Added ${action.symbol} to your watchlist.`
                     : `Removed ${action.symbol} from your watchlist.`,
