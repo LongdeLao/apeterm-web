@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, ArrowUpRight, Github, Monitor, SquareTerminal } from "lucide-react";
 import { motion } from "motion/react";
 import { PromoLayout } from "@/components/site/promo-layout";
-import { RevealBlock, SignalRail, TerminalStage } from "@/components/site/promo-motion";
+import { RevealBlock, TerminalStage } from "@/components/site/promo-motion";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -115,8 +115,6 @@ function Index() {
             </div>
           </div>
         </section>
-
-        <SignalRail />
 
         <section className="border-b border-[#171714]/20 px-5 py-20 sm:px-8 md:py-28">
           <div className="mx-auto max-w-[1320px]">

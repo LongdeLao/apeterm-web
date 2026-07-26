@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { PageIntro, PromoLayout } from "@/components/site/promo-layout";
-import { RevealBlock, SignalRail, TerminalStage } from "@/components/site/promo-motion";
+import { RevealBlock, TerminalStage } from "@/components/site/promo-motion";
 
 export const Route = createFileRoute("/product")({
   head: () => ({
@@ -29,7 +29,6 @@ function ProductPage() {
           title="The useful parts of a market desk."
           body="ApeTerm puts watchlists, news, SEC filings, charts, and notes into a restrained workspace. It helps you research; it does not place trades or pretend to replace judgment."
         />
-        <SignalRail />
         <section className="px-5 py-20 sm:px-8 md:py-28">
           <div className="mx-auto max-w-[1320px]">
             <RevealBlock>

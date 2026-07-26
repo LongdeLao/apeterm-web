@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUpRight, Cloud, Search, Rows3 } from "lucide-react";
 import { PageIntro, PromoLayout } from "@/components/site/promo-layout";
-import { RevealBlock, SignalRail } from "@/components/site/promo-motion";
+import { RevealBlock } from "@/components/site/promo-motion";
 
 export const Route = createFileRoute("/web")({
   head: () => ({
@@ -43,7 +43,6 @@ function WebPage() {
           title="The terminal workflow, without the install."
           body="The web edition brings ApeTerm's compact research desk to the browser. It is the hosted option for quick access and account-backed watchlists—not the Rust application running in a tab."
         />
-        <SignalRail />
         <section className="px-5 py-20 sm:px-8 md:py-28">
           <div className="mx-auto max-w-[1320px]">
             <RevealBlock>

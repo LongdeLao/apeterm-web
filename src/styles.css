@@ -176,26 +176,3 @@
 @utility animate-ticker {
   animation: ticker 60s linear infinite;
 }
-
-@keyframes promo-signal {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.promo-signal-track {
-  animation: promo-signal 34s linear infinite;
-}
-
-.promo-signal-track:hover {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .promo-signal-track {
-    animation: none;
-  }
-}

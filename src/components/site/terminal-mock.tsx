@@ -25,30 +25,9 @@ const newsTimes = [
   { t: "2h", src: "rss" },
 ];
 
-/** Random-walk hook: nudges one price every ~1.6s. */
-function useLivePrices() {
-  const [rows, setRows] = useState(initialRows);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setRows((prev) => {
-        const i = Math.floor(Math.random() * prev.length);
-        return prev.map((r, j) => {
-          if (j !== i) return r;
-          const delta = r.px * (Math.random() - 0.48) * 0.0015;
-          return { ...r, px: r.px + delta, chg: r.chg + (delta / r.px) * 100 };
-        });
-      });
-    }, 1600);
-    return () => clearInterval(id);
-  }, []);
-
-  return rows;
-}
-
 export function TerminalMock({ className }: { className?: string }) {
   const { t } = useI18n();
-  const rows = useLivePrices();
+  const rows = initialRows;
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [clock, setClock] = useState("--:--");
