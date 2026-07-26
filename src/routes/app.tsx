@@ -357,7 +357,6 @@ export function ApeTermWeb() {
   const [spotlightRow, setSpotlightRow] = useState(0);
   const [stockStream, setStockStream] = useState<Record<string, Quote>>({});
   const [cryptoStream, setCryptoStream] = useState<Record<string, Quote>>({});
-  const [stockStreamStatus, setStockStreamStatus] = useState("connecting");
   const [cryptoStreamStatus, setCryptoStreamStatus] = useState("connecting");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -433,13 +432,10 @@ export function ApeTermWeb() {
 
   useEffect(() => {
     const source = new EventSource("/api/yahoo-stream");
-    source.onopen = () => setStockStreamStatus("live");
     source.onmessage = (event) => {
       const quote = JSON.parse(event.data) as Quote;
       setStockStream((current) => ({ ...current, [quote.symbol]: quote }));
-      setStockStreamStatus(quote.marketState ?? "live");
     };
-    source.onerror = () => setStockStreamStatus("reconnecting");
     return () => source.close();
   }, []);
 
@@ -797,9 +793,9 @@ export function ApeTermWeb() {
                 ? "○ loading market"
                 : market.isError
                   ? "! market unavailable · cached sample"
-                  : watchTab === 0
-                    ? `● yfinance · ${stockStreamStatus.replaceAll("_", " ")} · 1s`
-                    : `● binance · ${cryptoStreamStatus}`}
+                  : watchTab === 1
+                    ? `● binance · ${cryptoStreamStatus}`
+                    : null}
             </p>
           </Window>
 
@@ -913,7 +909,7 @@ export function ApeTermWeb() {
                         ? "! EDGAR unavailable · cached sample"
                         : sec.data?.errors.length
                           ? "◐ cached 13F · EDGAR retrying"
-                          : `● 13F holdings · filed ${selectedSecEntity?.filing.filedAt ?? "—"}`}
+                          : null}
                   </p>
                 )}
               </div>
