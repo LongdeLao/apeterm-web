@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AuthGate } from "@/components/auth-gate";
 import { useApeAuth } from "@/lib/auth-context";
+import { autoStartTour, resetTour, startTour } from "@/onboarding/tour";
 import {
   InstrumentChart,
   chartTimeframes,
@@ -41,7 +42,9 @@ export const Route = createFileRoute("/app")({
 });
 
 type Panel = "news" | "watchlist" | "sec" | "notes";
-type Overlay = "search" | "spotlight" | "settings" | "help" | null;
+type PanelLayout = Record<Panel, number>;
+type Overlay = "search" | "spotlight" | "help" | null;
+type AppPage = "workspace" | "settings";
 type Quote = {
   symbol: string;
   price: number;
@@ -49,6 +52,8 @@ type Quote = {
   volume: number;
   relativeVolume: number | null;
   marketState?: string;
+  receivedAt?: string;
+  source?: "websocket" | "snapshot";
 };
 type MarketData = { stocks: Quote[]; crypto: Quote[]; errors: number; updatedAt: string };
 type NewsItem = {
@@ -98,8 +103,8 @@ type WebPreferences = {
   highContrast: boolean;
 };
 type AgentMessage = { role: "user" | "assistant"; content: string };
-type AgentData = { reply: string; model: string; actions?: ClientAction[] };
 type SymbolExtras = { profile: CompanyProfile | null; filings: SymbolFiling[] };
+type StockStreamEvent = Quote & { type?: string; status?: string };
 /** One reversible step, pushed before the agent mutates anything. */
 type UndoStep = { label: string; revert: () => void | Promise<void> };
 
@@ -118,6 +123,7 @@ const defaultStockOrder = [
   "NFLX",
 ];
 const watchlistStorageKey = "apeterm:watchlist";
+const cryptoWatchlistStorageKey = "apeterm:crypto-watchlist";
 const preferencesStorageKey = "apeterm:web-preferences";
 const defaultPreferences: WebPreferences = {
   experience: "pro",
@@ -126,7 +132,16 @@ const defaultPreferences: WebPreferences = {
   explanations: "experienced",
   highContrast: false,
 };
+const defaultPanelLayout: PanelLayout = { news: 0, watchlist: 1, sec: 2, notes: 3 };
 const cryptoOrder = ["BTC", "ETH", "SOL", "XRP", "BNB", "DOGE", "ADA", "AVAX"];
+const cryptoAliases = new Map([
+  ["BITCOIN", "BTC"],
+  ["ETHEREUM", "ETH"],
+  ["SOLANA", "SOL"],
+  ["TRON", "TRX"],
+  ["CARDANO", "ADA"],
+  ["DOGECOIN", "DOGE"],
+]);
 const commonSearchResults: SearchResult[] = [
   { symbol: "AAPL", name: "Apple Inc.", type: "EQUITY", exchange: "NASDAQ" },
   { symbol: "AMZN", name: "Amazon.com, Inc.", type: "EQUITY", exchange: "NASDAQ" },
@@ -176,7 +191,15 @@ function orderedQuotes(
 ) {
   const fallback = new Map(seed?.map((quote) => [quote.symbol, quote]));
   return order.flatMap((symbol) => {
-    const quote = streamed[symbol] ?? fallback.get(symbol);
+    const streamQuote = streamed[symbol];
+    const fallbackQuote = fallback.get(symbol);
+    const quote = streamQuote
+      ? {
+          ...fallbackQuote,
+          ...streamQuote,
+          relativeVolume: streamQuote.relativeVolume ?? fallbackQuote?.relativeVolume ?? null,
+        }
+      : fallbackQuote;
     return quote ? [quote] : [];
   });
 }
@@ -313,13 +336,27 @@ function Tabs({
 
 function Window({
   id,
+  slot,
   onFocus,
+  onMove,
+  tour,
   children,
 }: {
   id: Panel;
+  slot: number;
   onFocus: (panel: Panel) => void;
+  onMove: (from: Panel, to: Panel) => void;
+  tour?: string;
   children: React.ReactNode;
 }) {
+  const position =
+    slot === 0
+      ? "col-start-1 row-start-1"
+      : slot === 1
+        ? "col-start-3 row-start-1"
+        : slot === 2
+          ? "col-start-1 row-start-3"
+          : "col-start-3 row-start-3";
   const divider =
     id === "news"
       ? "border-b border-r"
@@ -330,11 +367,41 @@ function Window({
           : "";
   return (
     <section
+      data-tour={tour}
+      draggable
+      onDragStart={(event) => event.dataTransfer.setData("text/plain", id)}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        const from = event.dataTransfer.getData("text/plain") as Panel;
+        if (from && from !== id) onMove(from, id);
+      }}
       onMouseDown={() => onFocus(id)}
-      className={`min-h-0 overflow-hidden border-[#555] px-3 py-2.5 sm:px-4 sm:py-3 ${divider}`}
+      className={`min-h-0 overflow-hidden border-[#555] px-3 py-2.5 sm:px-4 sm:py-3 ${position} ${divider}`}
     >
       {children}
     </section>
+  );
+}
+
+function AgentText({ content }: { content: string }) {
+  return (
+    <div className="mt-1 space-y-1">
+      {content.split("\n").map((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={index} className="h-2" />;
+        const bullet = /^[-*]\s+/.test(trimmed);
+        const numbered = /^\d+\.\s+/.test(trimmed);
+        return (
+          <p
+            key={index}
+            className={`${bullet || numbered ? "pl-3" : ""} ${trimmed.startsWith("```") ? "text-[#909090]" : ""}`}
+          >
+            {trimmed.replace(/^[-*]\s+/, "• ")}
+          </p>
+        );
+      })}
+    </div>
   );
 }
 
@@ -368,6 +435,125 @@ function SettingChoices<T extends string>({
   );
 }
 
+function SettingsPage({
+  preferences,
+  authEmail,
+  onChange,
+  onReset,
+  onClose,
+}: {
+  preferences: WebPreferences;
+  authEmail?: string;
+  onChange: (patch: Partial<WebPreferences>) => void;
+  onReset: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <main className="h-[calc(100vh-22px)] min-h-[438px] overflow-y-auto px-4 py-3">
+      <div className="mx-auto flex min-h-full w-full max-w-[980px] flex-col">
+        <div className="flex items-center justify-between border-b border-[#555] pb-2">
+          <div>
+            <p className="font-bold">settings</p>
+            <p className="mt-1 text-[#777]">Saved automatically in this browser.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="border border-[#555] px-2 py-1 text-[#a8a8a8] hover:border-[#909090] hover:text-[#e8e8e8]"
+          >
+            back
+          </button>
+        </div>
+        <div className="divide-y divide-[#303030]">
+          <section className="grid gap-4 py-6 sm:grid-cols-[minmax(180px,1fr)_2fr]">
+            <div>
+              <p className="font-bold">Interface</p>
+              <p className="mt-1 text-[#777]">Layout and visual density.</p>
+            </div>
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-2 block text-[#a8a8a8]">Experience</span>
+                <SettingChoices
+                  value={preferences.experience}
+                  options={["simple", "pro"] as const}
+                  onChange={(experience) => onChange({ experience })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-[#a8a8a8]">Density</span>
+                <SettingChoices
+                  value={preferences.density}
+                  options={["comfortable", "compact"] as const}
+                  onChange={(density) => onChange({ density })}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-4">
+                <span>
+                  <span className="block text-[#a8a8a8]">High contrast</span>
+                  <span className="text-[#777]">Increase terminal contrast.</span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={preferences.highContrast}
+                  onClick={() => onChange({ highContrast: !preferences.highContrast })}
+                  className={`min-w-[44px] border px-2 py-1 ${
+                    preferences.highContrast
+                      ? "border-[#34d399] text-[#34d399]"
+                      : "border-[#555] text-[#777]"
+                  }`}
+                >
+                  {preferences.highContrast ? "on" : "off"}
+                </button>
+              </label>
+            </div>
+          </section>
+          <section className="grid gap-4 py-6 sm:grid-cols-[minmax(180px,1fr)_2fr]">
+            <div>
+              <p className="font-bold">Agent</p>
+              <p className="mt-1 text-[#777]">How answers are written.</p>
+            </div>
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-2 block text-[#a8a8a8]">Tone</span>
+                <SettingChoices
+                  value={preferences.agentTone}
+                  options={["concise", "normal", "detailed"] as const}
+                  onChange={(agentTone) => onChange({ agentTone })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-[#a8a8a8]">Explanations</span>
+                <SettingChoices
+                  value={preferences.explanations}
+                  options={["beginner", "experienced"] as const}
+                  onChange={(explanations) => onChange({ explanations })}
+                />
+              </label>
+            </div>
+          </section>
+          <section className="grid gap-4 py-6 sm:grid-cols-[minmax(180px,1fr)_2fr]">
+            <div>
+              <p className="font-bold">Account</p>
+              <p className="mt-1 text-[#777]">Browser-specific settings.</p>
+            </div>
+            <div>
+              <p className="text-[#a8a8a8]">{authEmail ?? "Local session"}</p>
+              <button
+                type="button"
+                onClick={onReset}
+                className="mt-3 border border-[#555] px-2 py-1 text-[#a8a8a8] hover:border-[#909090] hover:text-[#e8e8e8]"
+              >
+                Reset settings
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export function ApeTermWeb() {
   const auth = useApeAuth();
   const authenticatedSymbols = auth?.initialSymbols;
@@ -383,14 +569,18 @@ export function ApeTermWeb() {
   const [noteRow, setNoteRow] = useState(0);
   const [agentOpen, setAgentOpen] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
+  const [appPage, setAppPage] = useState<AppPage>("workspace");
   const [agentInput, setAgentInput] = useState("");
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentError, setAgentError] = useState("");
   const [stockOrder, setStockOrder] = useState(auth?.initialSymbols ?? defaultStockOrder);
+  const [cryptoSymbols, setCryptoSymbols] = useState(cryptoOrder);
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
+  const [cryptoWatchlistLoaded, setCryptoWatchlistLoaded] = useState(false);
   const [spotlightRow, setSpotlightRow] = useState(0);
   const [stockStream, setStockStream] = useState<Record<string, Quote>>({});
+  const [stockStreamStatus, setStockStreamStatus] = useState("connecting");
   const [cryptoStream, setCryptoStream] = useState<Record<string, Quote>>({});
   const [cryptoStreamStatus, setCryptoStreamStatus] = useState("connecting");
   const [searchQuery, setSearchQuery] = useState("");
@@ -406,8 +596,12 @@ export function ApeTermWeb() {
   const [layouts, setLayouts] = useState<Layout[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [agentToast, setAgentToast] = useState("");
+  const [split, setSplit] = useState({ x: 50, y: 50, agent: 32 });
+  const [panelLayout, setPanelLayout] = useState<PanelLayout>(defaultPanelLayout);
   const undoStack = useRef<UndoStep[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const agentScrollRef = useRef<HTMLDivElement>(null);
 
   const updatePreferences = (patch: Partial<WebPreferences>) =>
     setPreferences((current) => ({ ...current, ...patch }));
@@ -455,6 +649,35 @@ export function ApeTermWeb() {
 
   useEffect(() => {
     try {
+      const saved = JSON.parse(window.localStorage.getItem(cryptoWatchlistStorageKey) ?? "null");
+      if (Array.isArray(saved)) {
+        const symbols = saved
+          .map((symbol) =>
+            typeof symbol === "string"
+              ? (cryptoAliases.get(symbol.trim().toUpperCase()) ?? symbol.trim().toUpperCase())
+              : "",
+          )
+          .filter(
+            (symbol, index, all) => /^[A-Z]{2,10}$/.test(symbol) && all.indexOf(symbol) === index,
+          )
+          .slice(0, 30);
+        if (symbols.length) setCryptoSymbols(symbols);
+      }
+    } catch {
+      // Ignore corrupt local crypto state.
+    } finally {
+      setCryptoWatchlistLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cryptoWatchlistLoaded) {
+      window.localStorage.setItem(cryptoWatchlistStorageKey, JSON.stringify(cryptoSymbols));
+    }
+  }, [cryptoSymbols, cryptoWatchlistLoaded]);
+
+  useEffect(() => {
+    try {
       const saved = JSON.parse(
         window.localStorage.getItem(preferencesStorageKey) ?? "null",
       ) as Partial<WebPreferences> | null;
@@ -473,19 +696,62 @@ export function ApeTermWeb() {
   }, [preferences, preferencesLoaded]);
 
   useEffect(() => {
-    const source = new EventSource("/api/yahoo-stream");
-    source.onmessage = (event) => {
-      const quote = JSON.parse(event.data) as Quote;
-      setStockStream((current) => ({ ...current, [quote.symbol]: quote }));
+    const handleTourAction = (event: WindowEventMap["apeterm:tour-action"]) => {
+      if (event.detail === "open-search") {
+        setAppPage("workspace");
+        setSelectedInstrument(null);
+        setOverlay("search");
+      } else if (event.detail === "open-agent") {
+        setAppPage("workspace");
+        setOverlay(null);
+        setAgentOpen(true);
+      } else if (event.detail === "close-overlays") {
+        setAppPage("workspace");
+        setOverlay(null);
+      }
     };
-    return () => source.close();
+    window.addEventListener("apeterm:tour-action", handleTourAction);
+    return () => window.removeEventListener("apeterm:tour-action", handleTourAction);
   }, []);
+
+  useEffect(() => {
+    window.startTour = startTour;
+    window.resetTour = resetTour;
+    autoStartTour();
+  }, []);
+
+  useEffect(() => {
+    setStockStream({});
+    setStockStreamStatus("connecting");
+    const source = new EventSource(
+      `/api/yahoo-stream?symbols=${encodeURIComponent(stockOrder.join(","))}`,
+    );
+    source.onopen = () => setStockStreamStatus("live · 5s");
+    source.onmessage = (event) => {
+      const quote = JSON.parse(event.data) as StockStreamEvent;
+      if (quote.type === "status") {
+        setStockStreamStatus(
+          quote.status === "websocket-live"
+            ? "websocket"
+            : quote.status === "websocket-error" || quote.status === "websocket-closed"
+              ? "snapshot fallback"
+              : "connecting",
+        );
+        return;
+      }
+      setStockStream((current) => ({ ...current, [quote.symbol]: quote }));
+      setStockStreamStatus(quote.source === "websocket" ? "websocket" : "snapshot fallback");
+    };
+    source.onerror = () => setStockStreamStatus("reconnecting");
+    return () => source.close();
+  }, [stockOrder]);
 
   useEffect(() => {
     let socket: WebSocket | undefined;
     let reconnect: ReturnType<typeof setTimeout> | undefined;
     let closed = false;
-    const streams = cryptoOrder.map((symbol) => `${symbol.toLowerCase()}usdt@ticker`).join("/");
+    const streams = cryptoSymbols.map((symbol) => `${symbol.toLowerCase()}usdt@ticker`).join("/");
+    if (!streams) return undefined;
 
     const connect = () => {
       setCryptoStreamStatus("connecting");
@@ -517,7 +783,7 @@ export function ApeTermWeb() {
       if (reconnect) clearTimeout(reconnect);
       socket?.close();
     };
-  }, []);
+  }, [cryptoSymbols]);
   const liveNews = useQuery({
     queryKey: ["news", newsCategories[newsTab]],
     queryFn: () => getJson<NewsData>(`/api/news?category=${newsCategories[newsTab]}`),
@@ -611,6 +877,10 @@ export function ApeTermWeb() {
     return () => window.clearTimeout(timer);
   }, [agentToast]);
 
+  useEffect(() => {
+    agentScrollRef.current?.scrollTo({ top: agentScrollRef.current.scrollHeight });
+  }, [agentMessages, agentLoading]);
+
   // Price alerts are evaluated against each market refresh while the tab is open.
   // Filing alerts and scheduled digests need a server-side job and stay dormant.
   const quotes = market.data?.stocks;
@@ -664,7 +934,7 @@ export function ApeTermWeb() {
   const liveQuotes =
     watchTab === 0
       ? orderedQuotes(stockOrder, market.data?.stocks, stockStream)
-      : orderedQuotes(cryptoOrder, market.data?.crypto, cryptoStream);
+      : orderedQuotes(cryptoSymbols, market.data?.crypto, cryptoStream);
   const activeQuotes = liveQuotes?.length
     ? liveQuotes.map((quote) => formatQuoteRow(quote, watchTab === 1))
     : watchTab === 0
@@ -712,11 +982,13 @@ export function ApeTermWeb() {
       if ((event.metaKey || event.ctrlKey) && event.key === ",") {
         event.preventDefault();
         event.stopPropagation();
-        setOverlay("settings");
+        setOverlay(null);
+        setAppPage("settings");
         return;
       }
       if (event.key === "Escape") {
-        if (selectedInstrument) setSelectedInstrument(null);
+        if (appPage === "settings") setAppPage("workspace");
+        else if (selectedInstrument) setSelectedInstrument(null);
         else setOverlay(null);
         return;
       }
@@ -753,7 +1025,8 @@ export function ApeTermWeb() {
         setOverlay("search");
       } else if (event.key === ",") {
         event.preventDefault();
-        setOverlay("settings");
+        setOverlay(null);
+        setAppPage("settings");
       } else if (event.key === "?") setOverlay("help");
       else if (event.key === "ArrowRight") {
         if (focused === "news") setNewsTab((value) => (value + 1) % 5);
@@ -774,6 +1047,7 @@ export function ApeTermWeb() {
     activeNotes.length,
     activeQuotes.length,
     activeSecFeed.length,
+    appPage,
     chartTimeframe,
     focused,
     overlay,
@@ -786,9 +1060,14 @@ export function ApeTermWeb() {
   }, [overlay, selectedInstrument]);
 
   const validSymbol = (value: unknown) => {
-    const symbol = typeof value === "string" ? value.trim().toUpperCase() : "";
+    const raw = typeof value === "string" ? value.trim().toUpperCase() : "";
+    const symbol = cryptoAliases.get(raw) ?? raw;
     return /^[A-Z]{1,6}(?:-[A-Z]{1,4})?$/.test(symbol) ? symbol : "";
   };
+  const wantsCryptoList = (action: { list?: string }, symbols: string[]) =>
+    action.list?.toLowerCase() === "crypto" ||
+    (watchTab === 1 && action.list?.toLowerCase() !== "main") ||
+    symbols.some((symbol) => cryptoSymbols.includes(symbol) || cryptoOrder.includes(symbol));
   const pushUndo = (label: string, revert: UndoStep["revert"]) => {
     undoStack.current = [...undoStack.current.slice(-9), { label, revert }];
   };
@@ -797,6 +1076,13 @@ export function ApeTermWeb() {
     const previous = stockOrder;
     pushUndo(label, () => setStockOrder(previous));
   };
+  const movePanel = (from: Panel, to: Panel) => {
+    setPanelLayout((current) => ({
+      ...current,
+      [from]: current[to],
+      [to]: current[from],
+    }));
+  };
 
   /** Applies one agent tool call to the workspace. */
   const applyAgentAction = async (action: ClientAction) => {
@@ -804,6 +1090,15 @@ export function ApeTermWeb() {
       case "add_to_watchlist": {
         const symbol = validSymbol(action.symbol);
         if (!symbol) return;
+        if (wantsCryptoList(action, [symbol])) {
+          const previous = cryptoSymbols;
+          pushUndo(`add ${symbol}`, () => setCryptoSymbols(previous));
+          setCryptoSymbols((current) =>
+            current.includes(symbol) || current.length >= 30 ? current : [...current, symbol],
+          );
+          setWatchTab(1);
+          return;
+        }
         snapshotWatchlist(`add ${symbol}`);
         setStockOrder((current) =>
           current.includes(symbol) || current.length >= 25 ? current : [...current, symbol],
@@ -813,6 +1108,13 @@ export function ApeTermWeb() {
       case "remove_from_watchlist": {
         const symbol = validSymbol(action.symbol);
         if (!symbol) return;
+        if (wantsCryptoList(action, [symbol])) {
+          const previous = cryptoSymbols;
+          pushUndo(`remove ${symbol}`, () => setCryptoSymbols(previous));
+          setCryptoSymbols((current) => current.filter((item) => item !== symbol));
+          setWatchTab(1);
+          return;
+        }
         snapshotWatchlist(`remove ${symbol}`);
         setStockOrder((current) => current.filter((item) => item !== symbol));
         return;
@@ -820,6 +1122,18 @@ export function ApeTermWeb() {
       case "add_symbols": {
         const symbols = (action.symbols ?? []).map(validSymbol).filter(Boolean).slice(0, 20);
         if (!symbols.length) return;
+        if (wantsCryptoList(action, symbols)) {
+          const previous = cryptoSymbols;
+          pushUndo(`add ${symbols.length} crypto symbols`, () => setCryptoSymbols(previous));
+          setCryptoSymbols((current) => {
+            const merged = [...current];
+            for (const symbol of symbols)
+              if (!merged.includes(symbol) && merged.length < 30) merged.push(symbol);
+            return merged;
+          });
+          setWatchTab(1);
+          return;
+        }
         snapshotWatchlist(`add ${symbols.length} symbols`);
         setStockOrder((current) => {
           const merged = [...current];
@@ -1017,6 +1331,7 @@ export function ApeTermWeb() {
           focused,
           agentOpen,
           chartTimeframe,
+          panelLayout,
         };
         const saved = await upsertLayout(userId, action.name, state);
         if (!saved.length) {
@@ -1048,6 +1363,8 @@ export function ApeTermWeb() {
         if (typeof state.agentOpen === "boolean") setAgentOpen(state.agentOpen);
         if (typeof state.chartTimeframe === "string")
           setChartTimeframe(state.chartTimeframe as ChartTimeframe);
+        if (state.panelLayout && typeof state.panelLayout === "object")
+          setPanelLayout({ ...defaultPanelLayout, ...(state.panelLayout as Partial<PanelLayout>) });
         return;
       }
       case "undo_last_action": {
@@ -1092,6 +1409,33 @@ export function ApeTermWeb() {
     }
   };
 
+  const startPaneDrag = (axis: "x" | "y" | "agent") => (event: React.PointerEvent) => {
+    event.preventDefault();
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+    const move = (moveEvent: PointerEvent) => {
+      const rect = workspace.getBoundingClientRect();
+      setSplit((current) => {
+        if (axis === "x") {
+          const x = ((moveEvent.clientX - rect.left) / Math.max(1, rect.width)) * 100;
+          return { ...current, x: Math.min(72, Math.max(28, x)) };
+        }
+        if (axis === "y") {
+          const y = ((moveEvent.clientY - rect.top) / Math.max(1, rect.height)) * 100;
+          return { ...current, y: Math.min(72, Math.max(28, y)) };
+        }
+        const agent = ((rect.right - moveEvent.clientX) / Math.max(1, rect.width)) * 100;
+        return { ...current, agent: Math.min(45, Math.max(22, agent)) };
+      });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
   const submitAgent = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const content = agentInput.trim();
@@ -1133,12 +1477,47 @@ export function ApeTermWeb() {
           "Content-Type": "application/json",
           ...(auth?.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
         },
-        body: JSON.stringify({ messages: nextMessages, context }),
+        body: JSON.stringify({ messages: nextMessages, context, stream: true }),
       });
-      const data = (await response.json()) as AgentData & { error?: string };
-      if (!response.ok) throw new Error(data.error ?? `Agent ${response.status}`);
-      for (const action of data.actions ?? []) await applyAgentAction(action);
-      setAgentMessages((messages) => [...messages, { role: "assistant", content: data.reply }]);
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error ?? `Agent ${response.status}`);
+      }
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Agent stream unavailable");
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let assistantIndex = -1;
+      let actions: ClientAction[] = [];
+      const appendAssistant = (text: string) => {
+        setAgentMessages((messages) => {
+          if (assistantIndex < 0) {
+            assistantIndex = messages.length;
+            return [...messages, { role: "assistant", content: text }];
+          }
+          return messages.map((message, index) =>
+            index === assistantIndex ? { ...message, content: message.content + text } : message,
+          );
+        });
+      };
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as {
+            type?: string;
+            text?: string;
+            actions?: ClientAction[];
+          };
+          if (event.type === "meta") actions = event.actions ?? [];
+          if (event.type === "delta" && event.text) appendAssistant(event.text);
+        }
+      }
+      for (const action of actions) await applyAgentAction(action);
     } catch (error) {
       setAgentError(error instanceof Error ? error.message : "Agent unavailable");
     } finally {
@@ -1171,310 +1550,436 @@ export function ApeTermWeb() {
         preferences.density === "compact" ? "text-[12px]" : "text-[13px]"
       } ${preferences.highContrast ? "contrast-125" : ""}`}
     >
-      <div className="flex h-[calc(100vh-22px)] min-h-[438px]">
-        <main
-          className={`grid min-w-0 flex-1 grid-cols-2 grid-rows-2 ${agentOpen ? "border-r border-[#3a3a3a]" : ""}`}
-        >
-          <Window id="news" onFocus={setFocused}>
-            <PanelTitle title=" news " active={focused === "news"} />
-            <Tabs
-              items={["ALL", "WATCHLIST", "MACRO", "REDDIT", "CRYPTO"]}
-              selected={newsTab}
-              onSelect={(index) => {
-                setNewsTab(index);
-                setNewsRow(0);
-              }}
-            />
-            <div className="mt-2.5 space-y-[3px] overflow-hidden">
-              {activeHeadlines.map((item, index) => (
-                <button
-                  key={item[1] + item[0]}
-                  type="button"
-                  onClick={() => setNewsRow(index)}
-                  onDoubleClick={() => {
-                    const url = activeNewsItems?.[index]?.url;
-                    if (url) window.open(url, "_blank", "noopener,noreferrer");
-                  }}
-                  className={`grid w-full grid-cols-[38px_84px_48px_minmax(0,1fr)] gap-2 whitespace-nowrap text-left ${newsRow === index ? "bg-[#181818]" : ""}`}
-                >
-                  <span className="text-[#909090]">{item[0]}</span>
-                  <span className="truncate text-[#909090]">{item[1]}</span>
-                  <span className="font-bold text-[#34d399]">{item[2]}</span>
-                  <span className="truncate">{item[3]}</span>
-                </button>
-              ))}
-            </div>
-            <p
-              className={`mt-2 text-right ${liveNews.isError ? "text-[#f87171]" : "text-[#909090]"}`}
+      {appPage === "settings" ? (
+        <SettingsPage
+          preferences={preferences}
+          authEmail={auth?.userEmail}
+          onChange={updatePreferences}
+          onReset={() => setPreferences(defaultPreferences)}
+          onClose={() => setAppPage("workspace")}
+        />
+      ) : (
+        <div ref={workspaceRef} className="flex h-[calc(100vh-22px)] min-h-[438px]">
+          <main
+            data-tour="editor-canvas"
+            className={`relative grid min-w-0 flex-1 ${agentOpen ? "border-r border-[#3a3a3a]" : ""}`}
+            style={{
+              gridTemplateColumns: `${split.x}% 4px minmax(0, 1fr)`,
+              gridTemplateRows: `${split.y}% 4px minmax(0, 1fr)`,
+            }}
+          >
+            <Window
+              id="news"
+              slot={panelLayout.news}
+              onFocus={setFocused}
+              onMove={movePanel}
+              tour="news"
             >
-              {liveNews.isPending
-                ? "○ loading feed"
-                : liveNews.isError
-                  ? "! feed unavailable · cached sample"
-                  : `● live · ${activeNewsItems?.length ?? 0} stories`}
-            </p>
-          </Window>
-
-          <Window id="watchlist" onFocus={setFocused}>
-            <PanelTitle title=" watchlist " active={focused === "watchlist"} />
-            <Tabs
-              items={["MAIN", "CRYPTO"]}
-              selected={watchTab}
-              onSelect={(index) => {
-                setWatchTab(index);
-                setQuoteRow(0);
-              }}
-            />
-            <div className="mt-2.5 grid grid-cols-[68px_80px_80px_68px_42px] gap-x-2 text-[#8f8f8f]">
-              <span>symbol</span>
-              <span className="text-right">price</span>
-              <span className="text-right">change</span>
-              <span className="text-right">volume</span>
-              <span className="text-right">rvol</span>
-            </div>
-            <div className="mt-1 space-y-[2px]">
-              {activeQuotes.map((row, index) => (
-                <button
-                  key={row[0]}
-                  type="button"
-                  onClick={() => setQuoteRow(index)}
-                  className={`grid w-full grid-cols-[68px_80px_80px_68px_42px] gap-x-2 text-left ${quoteRow === index ? "bg-[#181818]" : ""}`}
-                >
-                  <span className="font-bold">
-                    {row[0]}
-                    {index === quoteRow ? <span className="ml-1 text-[#d0d0d0]">•</span> : null}
-                  </span>
-                  <span className="text-right">{row[1]}</span>
-                  <span
-                    className={`text-right ${row[2].startsWith("+") ? "text-[#34d399]" : "text-[#f87171]"}`}
-                  >
-                    {row[2].startsWith("+") ? "▲ " : "▼ "}
-                    {row[2]}
-                  </span>
-                  <span className="text-right text-[#909090]">{row[3]}</span>
-                  <span className="text-right text-[#909090]">{row[4]}</span>
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-right text-[#909090]">
-              {market.isPending
-                ? "○ loading market"
-                : market.isError
-                  ? "! market unavailable · cached sample"
-                  : watchTab === 1
-                    ? `● binance · ${cryptoStreamStatus}`
-                    : null}
-            </p>
-          </Window>
-
-          <Window id="sec" onFocus={setFocused}>
-            <PanelTitle title=" sec " active={focused === "sec"} />
-            <Tabs
-              items={["INSTITUTIONAL", "CEOS", "CONGRESS"]}
-              selected={secTab}
-              onSelect={(index) => {
-                setSecTab(index);
-                setSecRow(0);
-              }}
-            />
-            <div className="mt-2.5 grid h-[calc(100%-55px)] grid-cols-[42%_1fr] gap-3 overflow-hidden">
-              <div className="space-y-[3px] border-r border-[#3a3a3a] pr-3">
-                {activeSecFeed.map((row, index) => (
+              <PanelTitle title=" news " active={focused === "news"} />
+              <Tabs
+                items={["ALL", "WATCHLIST", "MACRO", "REDDIT", "CRYPTO"]}
+                selected={newsTab}
+                onSelect={(index) => {
+                  setNewsTab(index);
+                  setNewsRow(0);
+                }}
+              />
+              <div className="mt-2.5 space-y-[3px] overflow-hidden">
+                {activeHeadlines.map((item, index) => (
                   <button
-                    key={row[0]}
+                    key={`${item[1]}-${item[0]}-${item[3]}-${index}`}
                     type="button"
-                    onClick={() => setSecRow(index)}
-                    className={`block w-full truncate text-left ${safeSecRow === index ? "bg-[#181818] font-bold" : ""}`}
+                    onClick={() => setNewsRow(index)}
+                    onDoubleClick={() => {
+                      const url = activeNewsItems?.[index]?.url;
+                      if (url) window.open(url, "_blank", "noopener,noreferrer");
+                    }}
+                    className={`grid w-full grid-cols-[38px_84px_48px_minmax(0,1fr)] gap-2 whitespace-nowrap text-left ${newsRow === index ? "bg-[#181818]" : ""}`}
                   >
-                    <span className="mr-2 text-[#34d399]">▲</span>
-                    {row[0]}
+                    <span className="text-[#909090]">{item[0]}</span>
+                    <span className="truncate text-[#909090]">{item[1]}</span>
+                    <span className="font-bold text-[#34d399]">{item[2]}</span>
+                    <span className="truncate">{item[3]}</span>
                   </button>
                 ))}
               </div>
-              <div>
-                <p className="font-bold">{activeSecFeed[safeSecRow][0]}</p>
-                <p className="mt-1 text-[#909090]">
-                  {secTab === 0 && selectedSecEntity
-                    ? `13F value ${compactNumber(selectedSecEntity.totalValueUsd, true)} · Positions ${selectedSecEntity.positions} · ${selectedSecEntity.filing.reportDate}`
-                    : secTab === 0
-                      ? `${activeSecFeed[safeSecRow][1]} value ${activeSecFeed[safeSecRow][2]} · Positions ${activeSecFeed[safeSecRow][3]}`
-                      : secTab === 1
-                        ? `${activeSecFeed[safeSecRow][1]} · disclosed ${activeSecFeed[safeSecRow][2]} · ${activeSecFeed[safeSecRow][3]}`
-                        : `${activeSecFeed[safeSecRow][1]} · range ${activeSecFeed[safeSecRow][2]} · filed ${activeSecFeed[safeSecRow][3]} ago`}
-                </p>
-                <div className="mt-4 grid grid-cols-[1fr_64px_48px] gap-x-2">
-                  {secTab === 0 && selectedSecEntity ? (
-                    selectedSecEntity.holdings.slice(0, 7).map((holding, index) => (
-                      <button
-                        key={`${holding.cusip}-${index}`}
-                        type="button"
-                        onClick={() =>
-                          window.open(
-                            selectedSecEntity.filing.documentUrl,
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                        className="col-span-3 grid grid-cols-subgrid text-left hover:bg-[#181818]"
-                      >
-                        <span className="truncate" title={holding.issuer}>
-                          {holding.symbol}
-                        </span>
-                        <span className="text-right">{compactNumber(holding.valueUsd, true)}</span>
-                        <span className="text-right text-[#909090]">
-                          {holding.weight.toFixed(1)}%
-                        </span>
-                      </button>
-                    ))
-                  ) : secTab === 0 ? (
-                    <>
-                      <span>APPLE INC</span>
-                      <span className="text-right">300.0M</span>
-                      <span className="text-right text-[#909090]">28.1%</span>
-                      <span>AMERICAN EXPRESS</span>
-                      <span className="text-right">151.6M</span>
-                      <span className="text-right text-[#909090]">15.4%</span>
-                      <span>COCA COLA CO</span>
-                      <span className="text-right">400.0M</span>
-                      <span className="text-right text-[#909090]">9.8%</span>
-                      <span>OCCIDENTAL PET</span>
-                      <span className="text-right">264.9M</span>
-                      <span className="text-right text-[#34d399]">New</span>
-                    </>
-                  ) : secTab === 1 ? (
-                    <>
-                      <span>FORM 4</span>
-                      <span className="text-right">SELL</span>
-                      <span className="text-right text-[#f87171]">filed</span>
-                      <span>COMMON STOCK</span>
-                      <span className="text-right">50,000</span>
-                      <span className="text-right text-[#909090]">shares</span>
-                      <span>AVG PRICE</span>
-                      <span className="text-right">$242.12</span>
-                      <span className="text-right text-[#909090]">USD</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>NVDA</span>
-                      <span className="text-right">BUY</span>
-                      <span className="text-right text-[#34d399]">$1M–5M</span>
-                      <span>AVGO</span>
-                      <span className="text-right">BUY</span>
-                      <span className="text-right text-[#34d399]">$250K</span>
-                      <span>V</span>
-                      <span className="text-right">SELL</span>
-                      <span className="text-right text-[#f87171]">$100K</span>
-                    </>
+              <p
+                className={`mt-2 text-right ${liveNews.isError ? "text-[#f87171]" : "text-[#909090]"}`}
+              >
+                {liveNews.isPending
+                  ? "○ loading feed"
+                  : liveNews.isError
+                    ? "! feed unavailable · cached sample"
+                    : `● live · ${activeNewsItems?.length ?? 0} stories`}
+              </p>
+            </Window>
+
+            <Window
+              id="watchlist"
+              slot={panelLayout.watchlist}
+              onFocus={setFocused}
+              onMove={movePanel}
+              tour="watchlist"
+            >
+              <PanelTitle title=" watchlist " active={focused === "watchlist"} />
+              <Tabs
+                items={["MAIN", "CRYPTO"]}
+                selected={watchTab}
+                onSelect={(index) => {
+                  setWatchTab(index);
+                  setQuoteRow(0);
+                }}
+              />
+              <div className="mt-2.5 grid grid-cols-[68px_80px_80px_68px_42px] gap-x-2 text-[#8f8f8f]">
+                <span>symbol</span>
+                <span className="text-right">price</span>
+                <span className="text-right">change</span>
+                <span className="text-right">volume</span>
+                <span className="text-right">rvol</span>
+              </div>
+              <div className="mt-1 space-y-[2px]">
+                {activeQuotes.map((row, index) => (
+                  <button
+                    key={row[0]}
+                    type="button"
+                    onClick={() => setQuoteRow(index)}
+                    className={`grid w-full grid-cols-[68px_80px_80px_68px_42px] gap-x-2 text-left ${quoteRow === index ? "bg-[#181818]" : ""}`}
+                  >
+                    <span className="font-bold">
+                      {row[0]}
+                      {index === quoteRow ? <span className="ml-1 text-[#d0d0d0]">•</span> : null}
+                    </span>
+                    <span className="text-right">{row[1]}</span>
+                    <span
+                      className={`text-right ${row[2].startsWith("+") ? "text-[#34d399]" : "text-[#f87171]"}`}
+                    >
+                      {row[2].startsWith("+") ? "▲ " : "▼ "}
+                      {row[2]}
+                    </span>
+                    <span className="text-right text-[#909090]">{row[3]}</span>
+                    <span className="text-right text-[#909090]">{row[4]}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-right text-[#909090]">
+                {market.isPending
+                  ? "○ loading market"
+                  : market.isError
+                    ? "! market unavailable · cached sample"
+                    : watchTab === 1
+                      ? `● binance · ${cryptoStreamStatus}`
+                      : `● yahoo · ${stockStreamStatus}`}
+              </p>
+            </Window>
+
+            <Window
+              id="sec"
+              slot={panelLayout.sec}
+              onFocus={setFocused}
+              onMove={movePanel}
+              tour="sec"
+            >
+              <PanelTitle title=" sec " active={focused === "sec"} />
+              <Tabs
+                items={["INSTITUTIONAL", "CEOS", "CONGRESS"]}
+                selected={secTab}
+                onSelect={(index) => {
+                  setSecTab(index);
+                  setSecRow(0);
+                }}
+              />
+              <div className="mt-2.5 grid h-[calc(100%-55px)] grid-cols-[42%_1fr] gap-3 overflow-hidden">
+                <div className="space-y-[3px] border-r border-[#3a3a3a] pr-3">
+                  {activeSecFeed.map((row, index) => (
+                    <button
+                      key={row[0]}
+                      type="button"
+                      onClick={() => setSecRow(index)}
+                      className={`block w-full truncate text-left ${safeSecRow === index ? "bg-[#181818] font-bold" : ""}`}
+                    >
+                      <span className="mr-2 text-[#34d399]">▲</span>
+                      {row[0]}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <p className="font-bold">{activeSecFeed[safeSecRow][0]}</p>
+                  <p className="mt-1 text-[#909090]">
+                    {secTab === 0 && selectedSecEntity
+                      ? `13F value ${compactNumber(selectedSecEntity.totalValueUsd, true)} · Positions ${selectedSecEntity.positions} · ${selectedSecEntity.filing.reportDate}`
+                      : secTab === 0
+                        ? `${activeSecFeed[safeSecRow][1]} value ${activeSecFeed[safeSecRow][2]} · Positions ${activeSecFeed[safeSecRow][3]}`
+                        : secTab === 1
+                          ? `${activeSecFeed[safeSecRow][1]} · disclosed ${activeSecFeed[safeSecRow][2]} · ${activeSecFeed[safeSecRow][3]}`
+                          : `${activeSecFeed[safeSecRow][1]} · range ${activeSecFeed[safeSecRow][2]} · filed ${activeSecFeed[safeSecRow][3]} ago`}
+                  </p>
+                  {secTab === 0 && selectedSecEntity && (
+                    <a
+                      href={selectedSecEntity.filing.documentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-block text-[#34d399] hover:underline"
+                    >
+                      {selectedSecEntity.filing.form} filing ↗
+                    </a>
+                  )}
+                  <div className="mt-4 grid grid-cols-[1fr_64px_48px] gap-x-2">
+                    {secTab === 0 && selectedSecEntity ? (
+                      selectedSecEntity.holdings.slice(0, 7).map((holding, index) => (
+                        <div
+                          key={`${holding.cusip}-${index}`}
+                          className="col-span-3 grid grid-cols-subgrid"
+                        >
+                          <span className="truncate" title={holding.issuer}>
+                            {holding.symbol || holding.issuer}
+                          </span>
+                          <span className="text-right">
+                            {compactNumber(holding.valueUsd, true)}
+                          </span>
+                          <span className="text-right text-[#909090]">
+                            {holding.weight.toFixed(1)}%
+                          </span>
+                        </div>
+                      ))
+                    ) : secTab === 0 ? (
+                      <>
+                        <span>APPLE INC</span>
+                        <span className="text-right">300.0M</span>
+                        <span className="text-right text-[#909090]">28.1%</span>
+                        <span>AMERICAN EXPRESS</span>
+                        <span className="text-right">151.6M</span>
+                        <span className="text-right text-[#909090]">15.4%</span>
+                        <span>COCA COLA CO</span>
+                        <span className="text-right">400.0M</span>
+                        <span className="text-right text-[#909090]">9.8%</span>
+                        <span>OCCIDENTAL PET</span>
+                        <span className="text-right">264.9M</span>
+                        <span className="text-right text-[#34d399]">New</span>
+                      </>
+                    ) : secTab === 1 ? (
+                      <>
+                        <span>FORM 4</span>
+                        <span className="text-right">SELL</span>
+                        <span className="text-right text-[#f87171]">filed</span>
+                        <span>COMMON STOCK</span>
+                        <span className="text-right">50,000</span>
+                        <span className="text-right text-[#909090]">shares</span>
+                        <span>AVG PRICE</span>
+                        <span className="text-right">$242.12</span>
+                        <span className="text-right text-[#909090]">USD</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>NVDA</span>
+                        <span className="text-right">BUY</span>
+                        <span className="text-right text-[#34d399]">$1M–5M</span>
+                        <span>AVGO</span>
+                        <span className="text-right">BUY</span>
+                        <span className="text-right text-[#34d399]">$250K</span>
+                        <span>V</span>
+                        <span className="text-right">SELL</span>
+                        <span className="text-right text-[#f87171]">$100K</span>
+                      </>
+                    )}
+                  </div>
+                  {secTab === 0 && (
+                    <p
+                      className={`mt-3 text-right ${sec.isError ? "text-[#f87171]" : "text-[#909090]"}`}
+                    >
+                      {sec.isPending
+                        ? "○ loading EDGAR"
+                        : sec.isError
+                          ? "! EDGAR unavailable · cached sample"
+                          : sec.data?.errors.length
+                            ? "◐ cached 13F · EDGAR retrying"
+                            : null}
+                    </p>
                   )}
                 </div>
-                {secTab === 0 && (
-                  <p
-                    className={`mt-3 text-right ${sec.isError ? "text-[#f87171]" : "text-[#909090]"}`}
+              </div>
+            </Window>
+
+            <Window
+              id="notes"
+              slot={panelLayout.notes}
+              onFocus={setFocused}
+              onMove={movePanel}
+              tour="notes"
+            >
+              <PanelTitle title=" notes " active={focused === "notes"} />
+              <Tabs
+                items={["ALL", "TICKERS", "JOURNAL", "PINNED"]}
+                selected={notesTab}
+                onSelect={(index) => {
+                  setNotesTab(index);
+                  setNoteRow(0);
+                }}
+              />
+              <div className="mt-2.5 space-y-[3px]">
+                {activeNotes.map((row, index) => (
+                  <button
+                    key={row[1] + row[2]}
+                    type="button"
+                    onClick={() => setNoteRow(index)}
+                    className={`grid w-full grid-cols-[18px_48px_52px_minmax(0,1fr)] gap-2 whitespace-nowrap text-left ${noteRow === index ? "bg-[#181818]" : ""}`}
                   >
-                    {sec.isPending
-                      ? "○ loading EDGAR"
-                      : sec.isError
-                        ? "! EDGAR unavailable · cached sample"
-                        : sec.data?.errors.length
-                          ? "◐ cached 13F · EDGAR retrying"
-                          : null}
+                    <span>{row[0]}</span>
+                    <span className="text-right text-[#909090]">{row[1]}</span>
+                    <span
+                      className={row[2] === "—" ? "text-[#909090]" : "font-bold text-[#34d399]"}
+                    >
+                      {row[2]}
+                    </span>
+                    <span className="truncate">{row[3]}</span>
+                  </button>
+                ))}
+              </div>
+            </Window>
+            <button
+              type="button"
+              aria-label="Resize columns"
+              onPointerDown={startPaneDrag("x")}
+              className="col-start-2 row-span-3 cursor-col-resize bg-[#242424] hover:bg-[#777]"
+            />
+            <button
+              type="button"
+              aria-label="Resize rows"
+              onPointerDown={startPaneDrag("y")}
+              className="col-span-3 row-start-2 cursor-row-resize bg-[#242424] hover:bg-[#777]"
+            />
+          </main>
+
+          {agentOpen && (
+            <aside
+              data-tour="agent-panel"
+              className="relative flex min-w-[300px] max-w-[520px] flex-col px-4 py-3"
+              style={{ width: `${split.agent}%` }}
+            >
+              <button
+                type="button"
+                aria-label="Resize agent"
+                onPointerDown={startPaneDrag("agent")}
+                className="absolute left-0 top-0 h-full w-1 cursor-col-resize hover:bg-[#777]"
+              />
+              <div className="flex h-[25px] items-start gap-3 font-bold">
+                <span>agent</span>
+                <span className="text-[#34d399]">●</span>
+                <span className="font-normal text-[#909090]">openrouter/free</span>
+              </div>
+              <div ref={agentScrollRef} className="flex-1 overflow-y-auto pt-3">
+                {agentMessages.length === 0 ? (
+                  <>
+                    <p className="font-bold">Ask something and I'll take a look.</p>
+                    <div className="mt-5 space-y-3 text-[#909090]">
+                      <p>What's moving in my watchlist?</p>
+                      <p>Summarize the latest NVDA news.</p>
+                      <p>Compare AAPL and MSFT fundamentals.</p>
+                    </div>
+                  </>
+                ) : (
+                  agentMessages.map((message, index) => (
+                    <div key={`${message.role}-${index}`} className="mb-4">
+                      <p className="text-[#909090]">{message.role === "user" ? "you" : "ape"}</p>
+                      <AgentText content={message.content} />
+                    </div>
+                  ))
+                )}
+                {agentLoading && (
+                  <p className="mb-4 text-[#909090]">
+                    ape
+                    <br />○ thinking...
                   </p>
                 )}
+                {agentError && <p className="mb-4 text-[#f87171]">! {agentError}</p>}
               </div>
-            </div>
-          </Window>
+              <form onSubmit={submitAgent} className="border-t border-[#909090] pt-1">
+                <label htmlFor="agent" className="sr-only">
+                  Ask agent
+                </label>
+                <div className="flex">
+                  <span className="mr-2 text-[#d0d0d0]">❯</span>
+                  <input
+                    id="agent"
+                    value={agentInput}
+                    disabled={agentLoading}
+                    onChange={(event) => setAgentInput(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#909090]"
+                    placeholder="Ask anything..."
+                  />
+                </div>
+                <p className="mt-1 text-[#909090]">⏎ send esc close</p>
+              </form>
+            </aside>
+          )}
+        </div>
+      )}
 
-          <Window id="notes" onFocus={setFocused}>
-            <PanelTitle title=" notes " active={focused === "notes"} />
-            <Tabs
-              items={["ALL", "TICKERS", "JOURNAL", "PINNED"]}
-              selected={notesTab}
-              onSelect={(index) => {
-                setNotesTab(index);
-                setNoteRow(0);
-              }}
-            />
-            <div className="mt-2.5 space-y-[3px]">
-              {activeNotes.map((row, index) => (
-                <button
-                  key={row[1] + row[2]}
-                  type="button"
-                  onClick={() => setNoteRow(index)}
-                  className={`grid w-full grid-cols-[18px_48px_52px_minmax(0,1fr)] gap-2 whitespace-nowrap text-left ${noteRow === index ? "bg-[#181818]" : ""}`}
-                >
-                  <span>{row[0]}</span>
-                  <span className="text-right text-[#909090]">{row[1]}</span>
-                  <span className={row[2] === "—" ? "text-[#909090]" : "font-bold text-[#34d399]"}>
-                    {row[2]}
-                  </span>
-                  <span className="truncate">{row[3]}</span>
-                </button>
-              ))}
-            </div>
-          </Window>
-        </main>
-
-        {agentOpen && (
-          <aside className="flex w-[32%] min-w-[300px] max-w-[440px] flex-col px-4 py-3">
-            <div className="flex h-[25px] items-start gap-3 font-bold">
-              <span>agent</span>
-              <span className="text-[#34d399]">●</span>
-              <span className="font-normal text-[#909090]">openrouter/free</span>
-            </div>
-            <div className="flex-1 overflow-y-auto pt-3">
-              {agentMessages.length === 0 ? (
-                <>
-                  <p className="font-bold">Ask something and I'll take a look.</p>
-                  <div className="mt-5 space-y-3 text-[#909090]">
-                    <p>What's moving in my watchlist?</p>
-                    <p>Summarize the latest NVDA news.</p>
-                    <p>Compare AAPL and MSFT fundamentals.</p>
-                  </div>
-                </>
-              ) : (
-                agentMessages.map((message, index) => (
-                  <div key={`${message.role}-${index}`} className="mb-4">
-                    <p className="text-[#909090]">{message.role === "user" ? "you" : "ape"}</p>
-                    <p className="mt-1 whitespace-pre-wrap">{message.content}</p>
-                  </div>
-                ))
-              )}
-              {agentLoading && (
-                <p className="mb-4 text-[#909090]">
-                  ape
-                  <br />○ thinking...
-                </p>
-              )}
-              {agentError && <p className="mb-4 text-[#f87171]">! {agentError}</p>}
-            </div>
-            <form onSubmit={submitAgent} className="border-t border-[#909090] pt-1">
-              <label htmlFor="agent" className="sr-only">
-                Ask agent
-              </label>
-              <div className="flex">
-                <span className="mr-2 text-[#d0d0d0]">❯</span>
-                <input
-                  id="agent"
-                  value={agentInput}
-                  disabled={agentLoading}
-                  onChange={(event) => setAgentInput(event.target.value)}
-                  className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#909090]"
-                  placeholder="Ask anything..."
-                />
-              </div>
-              <p className="mt-1 text-[#909090]">⏎ send esc close</p>
-            </form>
-          </aside>
-        )}
-      </div>
-
-      <footer className="h-[22px] overflow-hidden whitespace-nowrap bg-[#0c0c0c] px-1 text-[11px] leading-[22px] text-[#777]">
+      <footer className="h-[22px] overflow-x-auto overflow-y-hidden whitespace-nowrap bg-[#0c0c0c] px-1 text-[11px] leading-[22px] text-[#777]">
         {agentToast && (
           <span className="mr-3 bg-[#e8b13a] px-1 font-bold text-[#0c0c0c]">{agentToast}</span>
         )}
-        [a] agent&nbsp;&nbsp; [/] search&nbsp;&nbsp; [,] settings&nbsp;&nbsp; [E]{" "}
-        {preferences.experience}&nbsp;&nbsp; [ctrl+p] spotlight&nbsp;&nbsp; [?] help&nbsp;&nbsp; [q]
-        quit
+        <button
+          type="button"
+          data-tour="search"
+          onClick={() => {
+            setSelectedInstrument(null);
+            setOverlay("search");
+          }}
+          className="mr-3 hover:text-[#e8e8e8]"
+        >
+          search
+        </button>
+        <button
+          type="button"
+          data-tour="agent-toggle"
+          onClick={() => setAgentOpen((open) => !open)}
+          className="mr-3 hover:text-[#e8e8e8]"
+        >
+          agent
+        </button>
+        <button
+          type="button"
+          data-tour="new-project"
+          onClick={() => setOverlay("search")}
+          className="mr-3 bg-[#e8e8e8] px-1 font-bold text-[#0c0c0c] hover:bg-[#d0d0d0]"
+        >
+          new project
+        </button>
+        <button
+          type="button"
+          data-tour="share"
+          onClick={() =>
+            setAgentToast("Sharing is not connected yet. Default permission: view-only.")
+          }
+          aria-label="Share workspace"
+          className="mr-3 hover:text-[#e8e8e8]"
+        >
+          share
+        </button>
+        <button
+          type="button"
+          data-tour="settings"
+          onClick={() => {
+            setOverlay(null);
+            setAppPage("settings");
+          }}
+          aria-label="Open settings"
+          className="mr-3 hover:text-[#e8e8e8]"
+        >
+          ⚙
+        </button>
+        <button
+          type="button"
+          onClick={() => void startTour()}
+          className="mr-3 hover:text-[#e8e8e8]"
+        >
+          replay tour
+        </button>
+        <button type="button" onClick={() => resetTour()} className="mr-3 hover:text-[#e8e8e8]">
+          reset tour
+        </button>
+        [/] search&nbsp;&nbsp; [,] settings&nbsp;&nbsp; [E] {preferences.experience}&nbsp;&nbsp;
+        [ctrl+p] spotlight&nbsp;&nbsp; [?] help&nbsp;&nbsp; [q] quit
         {focused === "news" && (
           <span>
             &nbsp;&nbsp; [←/→] filter&nbsp;&nbsp; [j/k] move&nbsp;&nbsp; [enter]
@@ -1499,9 +2004,9 @@ export function ApeTermWeb() {
             if (event.currentTarget === event.target) setOverlay(null);
           }}
         >
-          <div className="w-full max-w-[620px] border border-[#d0d0d0] bg-[#0c0c0c] p-1 text-[12px] shadow-[0_0_0_1px_#0c0c0c]">
+          <div className="h-[min(520px,calc(100vh-48px))] w-[min(620px,calc(100vw-32px))] border border-[#d0d0d0] bg-[#0c0c0c] p-1 text-[12px] shadow-[0_0_0_1px_#0c0c0c]">
             {overlay === "search" && (
-              <div>
+              <div data-tour="search-panel" className="flex h-full flex-col overflow-hidden">
                 <p className="bg-[#e8e8e8] px-1 font-bold text-[#0c0c0c]">search instruments</p>
                 <>
                   <div className="flex border-b border-[#3a3a3a] px-2 py-3">
@@ -1533,7 +2038,7 @@ export function ApeTermWeb() {
                       placeholder="symbol or company name"
                     />
                   </div>
-                  <div className="min-h-[120px] max-h-[310px] overflow-y-auto py-1">
+                  <div className="min-h-0 flex-1 overflow-y-auto py-1">
                     {!searchQuery.trim() ? (
                       <p className="px-2 py-5 text-center text-[#909090]">
                         Search standard U.S. stocks and ETFs
@@ -1597,7 +2102,8 @@ export function ApeTermWeb() {
                       }
                       if (index === 1) setAgentOpen(true);
                       if (index === 7) {
-                        setOverlay("settings");
+                        setOverlay(null);
+                        setAppPage("settings");
                         return;
                       }
                       setOverlay(null);
@@ -1609,110 +2115,6 @@ export function ApeTermWeb() {
                   </button>
                 ))}
                 <p className="mt-2 px-2 text-[#909090]">↑↓ navigate [enter] open [esc] close</p>
-              </div>
-            )}
-            {overlay === "settings" && (
-              <div>
-                <div className="flex items-center justify-between bg-[#e8e8e8] px-2 py-1 font-bold text-[#0c0c0c]">
-                  <span>Settings</span>
-                  <button
-                    type="button"
-                    onClick={() => setOverlay(null)}
-                    aria-label="Close settings"
-                  >
-                    esc
-                  </button>
-                </div>
-                <div className="max-h-[70vh] divide-y divide-[#303030] overflow-y-auto px-3">
-                  <section className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-4 py-4">
-                    <div>
-                      <p className="font-bold">Interface</p>
-                      <p className="mt-1 text-[#777]">Layout and visual density.</p>
-                    </div>
-                    <div className="space-y-4">
-                      <label className="block">
-                        <span className="mb-2 block text-[#a8a8a8]">Experience</span>
-                        <SettingChoices
-                          value={preferences.experience}
-                          options={["simple", "pro"] as const}
-                          onChange={(experience) => updatePreferences({ experience })}
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="mb-2 block text-[#a8a8a8]">Density</span>
-                        <SettingChoices
-                          value={preferences.density}
-                          options={["comfortable", "compact"] as const}
-                          onChange={(density) => updatePreferences({ density })}
-                        />
-                      </label>
-                      <label className="flex items-center justify-between gap-4">
-                        <span>
-                          <span className="block text-[#a8a8a8]">High contrast</span>
-                          <span className="text-[#777]">Increase terminal contrast.</span>
-                        </span>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={preferences.highContrast}
-                          onClick={() =>
-                            updatePreferences({ highContrast: !preferences.highContrast })
-                          }
-                          className={`min-w-[44px] border px-2 py-1 ${
-                            preferences.highContrast
-                              ? "border-[#34d399] text-[#34d399]"
-                              : "border-[#555] text-[#777]"
-                          }`}
-                        >
-                          {preferences.highContrast ? "on" : "off"}
-                        </button>
-                      </label>
-                    </div>
-                  </section>
-                  <section className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-4 py-4">
-                    <div>
-                      <p className="font-bold">Agent</p>
-                      <p className="mt-1 text-[#777]">How answers are written.</p>
-                    </div>
-                    <div className="space-y-4">
-                      <label className="block">
-                        <span className="mb-2 block text-[#a8a8a8]">Tone</span>
-                        <SettingChoices
-                          value={preferences.agentTone}
-                          options={["concise", "normal", "detailed"] as const}
-                          onChange={(agentTone) => updatePreferences({ agentTone })}
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="mb-2 block text-[#a8a8a8]">Explanations</span>
-                        <SettingChoices
-                          value={preferences.explanations}
-                          options={["beginner", "experienced"] as const}
-                          onChange={(explanations) => updatePreferences({ explanations })}
-                        />
-                      </label>
-                    </div>
-                  </section>
-                  <section className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-4 py-4">
-                    <div>
-                      <p className="font-bold">Account</p>
-                      <p className="mt-1 text-[#777]">Browser-specific settings.</p>
-                    </div>
-                    <div>
-                      <p className="text-[#a8a8a8]">{auth?.userEmail ?? "Local session"}</p>
-                      <button
-                        type="button"
-                        onClick={() => setPreferences(defaultPreferences)}
-                        className="mt-3 border border-[#555] px-2 py-1 text-[#a8a8a8] hover:border-[#909090] hover:text-[#e8e8e8]"
-                      >
-                        Reset settings
-                      </button>
-                    </div>
-                  </section>
-                </div>
-                <p className="border-t border-[#3a3a3a] px-3 py-2 text-[#777]">
-                  Saved automatically in this browser · comma opens settings
-                </p>
               </div>
             )}
             {overlay === "help" && (

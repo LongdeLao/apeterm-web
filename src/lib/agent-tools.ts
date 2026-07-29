@@ -22,9 +22,9 @@ export const preferenceKeys = [
 
 export type ClientAction =
   // ── watchlists ────────────────────────────────────────────────
-  | { type: "add_to_watchlist"; symbol: string }
-  | { type: "remove_from_watchlist"; symbol: string }
-  | { type: "add_symbols"; symbols: string[] }
+  | { type: "add_to_watchlist"; symbol: string; list?: string }
+  | { type: "remove_from_watchlist"; symbol: string; list?: string }
+  | { type: "add_symbols"; symbols: string[]; list?: string }
   | { type: "sort_watchlist"; by: (typeof sortKeys)[number]; descending?: boolean }
   | { type: "pin_symbol"; symbol: string }
   | { type: "create_watchlist"; name: string; symbols?: string[] }
@@ -109,7 +109,11 @@ const tool = (
   },
 });
 
-const symbolProp = { type: "string", description: "Canonical US ticker, for example NVDA" };
+const symbolProp = { type: "string", description: "Canonical ticker, for example NVDA or BTC" };
+const listProp = {
+  type: "string",
+  description: "Optional target list: main, crypto, or a named watchlist.",
+};
 const enumProp = (values: readonly string[], description: string) => ({
   type: "string",
   enum: [...values],
@@ -118,19 +122,25 @@ const enumProp = (values: readonly string[], description: string) => ({
 
 export const agentTools = [
   // ── watchlists ──────────────────────────────────────────────────────────────
-  tool("add_to_watchlist", "Add one ticker to the active watchlist.", { symbol: symbolProp }, [
-    "symbol",
-  ]),
+  tool(
+    "add_to_watchlist",
+    "Add one ticker to a watchlist. Use list='crypto' for crypto symbols like BTC, ETH, SOL, TRX.",
+    { symbol: symbolProp, list: listProp },
+    ["symbol"],
+  ),
   tool(
     "remove_from_watchlist",
-    "Remove one ticker from the active watchlist.",
-    { symbol: symbolProp },
+    "Remove one ticker from a watchlist. Use list='crypto' for crypto symbols like BTC, ETH, SOL, TRX.",
+    { symbol: symbolProp, list: listProp },
     ["symbol"],
   ),
   tool(
     "add_symbols",
-    "Add several tickers to the active watchlist at once. Use after looking up holdings or search results.",
-    { symbols: { type: "array", items: symbolProp, description: "Up to 20 tickers" } },
+    "Add several tickers to a watchlist at once. Use after looking up holdings or search results.",
+    {
+      symbols: { type: "array", items: symbolProp, description: "Up to 20 tickers" },
+      list: listProp,
+    },
     ["symbols"],
   ),
   tool("sort_watchlist", "Reorder the active watchlist.", {

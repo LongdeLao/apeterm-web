@@ -176,3 +176,92 @@
 @utility animate-ticker {
   animation: ticker 60s linear infinite;
 }
+
+.apeterm-driver-popover.driver-popover {
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  border: 1px solid var(--terminal-muted);
+  border-radius: 4px;
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
+  box-shadow:
+    0 18px 50px oklch(0 0 0 / 0.45),
+    0 0 0 1px oklch(1 0 0 / 0.08);
+  font-family: var(--font-mono);
+  padding: 14px;
+}
+
+.apeterm-driver-popover .driver-popover-title {
+  color: var(--terminal-fg);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.apeterm-driver-popover .driver-popover-description {
+  color: var(--terminal-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.apeterm-driver-popover .driver-popover-progress-text {
+  color: var(--terminal-muted);
+  font-size: 11px;
+}
+
+.apeterm-driver-popover .driver-popover-footer-btn {
+  border: 1px solid var(--terminal-muted);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--terminal-fg);
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.apeterm-driver-popover .driver-popover-footer-btn:hover,
+.apeterm-driver-popover .driver-popover-footer-btn:focus {
+  border-color: var(--terminal-fg);
+  background: oklch(1 0 0 / 0.08);
+}
+
+.apeterm-driver-popover .driver-popover-next-btn {
+  border-color: var(--terminal-green);
+  color: var(--terminal-green);
+}
+
+.apeterm-driver-popover .driver-popover-close-btn {
+  color: var(--terminal-muted);
+}
+
+.apeterm-driver-popover .driver-popover-close-btn::before {
+  content: "Skip";
+  font-size: 11px;
+}
+
+.apeterm-driver-popover .driver-popover-close-btn {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 0;
+}
+
+.apeterm-driver-popover .driver-popover-arrow-side-left {
+  border-left-color: var(--terminal-bg);
+}
+
+.apeterm-driver-popover .driver-popover-arrow-side-right {
+  border-right-color: var(--terminal-bg);
+}
+
+.apeterm-driver-popover .driver-popover-arrow-side-top {
+  border-top-color: var(--terminal-bg);
+}
+
+.apeterm-driver-popover .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--terminal-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .driver-overlay-animated {
+    transition: none !important;
+  }
+}

@@ -10,7 +10,15 @@ type Quote = {
   changePercent: number;
   volume: number;
   relativeVolume: number | null;
+  marketState: "pre_market" | "regular" | "after_hours";
 };
+
+function normalizeMarketState(value: unknown): Quote["marketState"] {
+  const state = String(value ?? "").toUpperCase();
+  if (state === "PRE" || state === "PREPRE" || state === "PRE_MARKET") return "pre_market";
+  if (state === "REGULAR" || state === "REGULAR_MARKET") return "regular";
+  return "after_hours";
+}
 
 async function stockQuote(symbol: string): Promise<Quote> {
   const response = await fetch(
@@ -30,20 +38,23 @@ async function stockQuote(symbol: string): Promise<Quote> {
   );
   const volume = Number(meta.regularMarketVolume ?? volumes.at(-1) ?? 0);
   const average = volumes.length
-    ? volumes.reduce((sum: number, value: number) => sum + value, 0) / volumes.length
+    ? volumes.slice(-30).reduce((sum: number, value: number) => sum + value, 0) /
+      Math.min(30, volumes.length)
     : 0;
-  const latestClose = closes.at(-1);
-  const previous = Number(
-    latestClose && Math.abs(latestClose - Number(meta.regularMarketPrice)) < latestClose * 0.001
-      ? (closes.at(-2) ?? latestClose)
-      : (latestClose ?? meta.chartPreviousClose ?? meta.regularMarketPrice),
-  );
+  const price = Number(meta.regularMarketPrice);
+  const previous = Number(meta.chartPreviousClose ?? meta.previousClose ?? closes.at(-2) ?? price);
+  const changePercent = Number.isFinite(Number(meta.regularMarketChangePercent))
+    ? Number(meta.regularMarketChangePercent)
+    : previous
+      ? ((price - previous) / previous) * 100
+      : 0;
   return {
     symbol,
-    price: Number(meta.regularMarketPrice),
-    changePercent: previous ? ((Number(meta.regularMarketPrice) - previous) / previous) * 100 : 0,
+    price,
+    changePercent,
     volume,
     relativeVolume: average ? volume / average : null,
+    marketState: normalizeMarketState(meta.marketState),
   };
 }
 
@@ -59,6 +70,7 @@ async function cryptoQuote(symbol: string): Promise<Quote> {
     changePercent: Number(payload.priceChangePercent),
     volume: Number(payload.quoteVolume),
     relativeVolume: null,
+    marketState: "regular",
   };
 }
 

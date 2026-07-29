@@ -339,7 +339,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [booting, setBooting] = useState(true);
   const [onboarded, setOnboarded] = useState(false);
   const [symbols, setSymbols] = useState(defaultSymbols);
+  const [demoMode, setDemoMode] = useState(false);
   const userId = session?.user.id;
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      setDemoMode(new URL(window.location.href).searchParams.has("tour-demo"));
+    }
+  }, []);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -403,6 +410,23 @@ export function AuthGate({ children }: { children: ReactNode }) {
         : null,
     [session, symbols],
   );
+
+  if (demoMode) {
+    return (
+      <AuthContext.Provider
+        value={{
+          accessToken: "",
+          userId: "",
+          initialSymbols: defaultSymbols,
+          userEmail: "tour-demo@local",
+          saveWatchlist: async (nextSymbols) => setSymbols(nextSymbols),
+          signOut: async () => undefined,
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 
   // Signed-in users are heading into the dark workspace, so keep the dark shell.
   // Signed-out users are heading to the paper auth screen — match that instead.

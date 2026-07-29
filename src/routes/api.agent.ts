@@ -11,6 +11,14 @@ const rateLimit = (rateGlobal.__apeAgentRate ??= new Map());
 
 const MAX_ROUNDS = 4;
 const SYMBOL_PATTERN = /^[A-Z]{1,6}(?:-[A-Z]{1,4})?$/;
+const cryptoAliases = new Map([
+  ["BITCOIN", "BTC"],
+  ["ETHEREUM", "ETH"],
+  ["SOLANA", "SOL"],
+  ["TRON", "TRX"],
+  ["CARDANO", "ADA"],
+  ["DOGECOIN", "DOGE"],
+]);
 
 function clientAddress(request: Request) {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
@@ -108,8 +116,33 @@ function num(value: unknown) {
 }
 
 function symbolArg(value: unknown) {
-  const symbol = typeof value === "string" ? value.trim().toUpperCase() : "";
+  const raw = typeof value === "string" ? value.trim().toUpperCase() : "";
+  const symbol = cryptoAliases.get(raw) ?? raw;
   return SYMBOL_PATTERN.test(symbol) ? symbol : "";
+}
+
+function streamResult(payload: { reply: string; model: string; actions: ClientAction[] }) {
+  const encoder = new TextEncoder();
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        const send = (event: Record<string, unknown>) =>
+          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+        send({ type: "meta", model: payload.model, actions: payload.actions });
+        for (const token of payload.reply.match(/\S+\s*/g) ?? [payload.reply]) {
+          send({ type: "delta", text: token });
+        }
+        send({ type: "done" });
+        controller.close();
+      },
+    }),
+    {
+      headers: {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+      },
+    },
+  );
 }
 
 /** Executes a read-only tool server side and returns a compact JSON result string. */
@@ -275,6 +308,8 @@ themselves.
 
 Rules:
 - Resolve company names to canonical US tickers before calling any symbol tool.
+- Crypto aliases: Tron=TRX, Bitcoin=BTC, Ethereum=ETH, Solana=SOL, Cardano=ADA, Dogecoin=DOGE.
+- When changing crypto watchlists, pass list="crypto". When changing stock watchlists, pass list="main".
 - Use the read tools whenever you need a number. Never invent a price, filing or headline.
 - Chain tools when it helps: look something up, then act on the result.
 - Distinguish facts from inference. Do not give personalised financial advice.
@@ -297,6 +332,7 @@ export const Route = createFileRoute("/api/agent")({
         const body = (await request.json().catch(() => null)) as {
           messages?: AgentMessage[];
           context?: string;
+          stream?: boolean;
         } | null;
         const incoming = (body?.messages ?? [])
           .filter(
@@ -400,7 +436,8 @@ export const Route = createFileRoute("/api/agent")({
         if (!reply) {
           return Response.json({ error: "The model returned no response." }, { status: 502 });
         }
-        return Response.json({ reply, model: usedModel, actions });
+        const result = { reply, model: usedModel, actions };
+        return body?.stream ? streamResult(result) : Response.json(result);
       },
     },
   },

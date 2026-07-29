@@ -24,11 +24,26 @@ export type ChartDetail = {
   averageVolume: number;
   open: number;
   marketCap: number;
+  extendedPrice: number | null;
+  extendedChangePercent: number | null;
+  trailingPE: number;
+  forwardPE: number;
+  priceToBook: number;
+  dividendYield: number;
+  beta: number;
+  epsTrailingTwelveMonths: number;
+  nextEarningsDays: number | null;
   dayHigh: number;
   dayLow: number;
   week52High: number;
   week52Low: number;
   marketTime: number;
+  summary: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  website: string | null;
+  fullTimeEmployees: number;
   history: { ts: number; close: number; volume: number }[];
 };
 
@@ -286,6 +301,13 @@ export function InstrumentChart({
         ["Avg Vol", number(detail.averageVolume, true)],
         ["Day Range", `${number(detail.dayLow)}–${number(detail.dayHigh)}`],
         ["Mkt Cap", number(detail.marketCap, true)],
+        ["P/E", number(detail.trailingPE)],
+        ["Fwd P/E", number(detail.forwardPE)],
+        ["P/B", number(detail.priceToBook)],
+        ["EPS TTM", number(detail.epsTrailingTwelveMonths)],
+        ["Div Yield", detail.dividendYield ? `${(detail.dividendYield * 100).toFixed(2)}%` : "—"],
+        ["Beta", number(detail.beta)],
+        ["Earnings", detail.nextEarningsDays == null ? "—" : `${detail.nextEarningsDays}d`],
         ["52W High", number(detail.week52High)],
         ["52W Low", number(detail.week52Low)],
       ]
@@ -356,6 +378,14 @@ export function InstrumentChart({
                   {detail.change.toFixed(2)} ({detail.changePercent >= 0 ? "+" : ""}
                   {detail.changePercent.toFixed(2)}%)
                 </p>
+                {detail.extendedPrice && (
+                  <p className="mt-1 text-[#777]">
+                    After-hours {number(detail.extendedPrice)}{" "}
+                    {detail.extendedChangePercent == null
+                      ? ""
+                      : `(${detail.extendedChangePercent >= 0 ? "+" : ""}${detail.extendedChangePercent.toFixed(2)}%)`}
+                  </p>
+                )}
               </>
             )}
           </Section>
@@ -386,7 +416,37 @@ export function InstrumentChart({
             </div>
           </Section>
           <Section title="Company">
-            {profile ? (
+            {detail?.summary || detail?.website || detail?.city || detail?.country ? (
+              <div className="space-y-2">
+                {detail.summary && <p className="text-[#d0d0d0]">{detail.summary}</p>}
+                <div className="space-y-1">
+                  {[
+                    ["HQ", [detail.city, detail.state, detail.country].filter(Boolean).join(", ")],
+                    ["Employees", number(detail.fullTimeEmployees, true)],
+                    ["Website", detail.website ?? ""],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-3">
+                      <span className="shrink-0 text-[#777]">{label}</span>
+                      {label === "Website" && value ? (
+                        <a
+                          href={String(value)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="truncate text-right text-[#34d399] hover:underline"
+                          title={String(value)}
+                        >
+                          {String(value).replace(/^https?:\/\//, "")}
+                        </a>
+                      ) : (
+                        <span className="truncate text-right" title={String(value)}>
+                          {value || "—"}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : profile ? (
               <div className="space-y-1">
                 <p className="truncate font-bold" title={profile.name}>
                   {profile.name}
